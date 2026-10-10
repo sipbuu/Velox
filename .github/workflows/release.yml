@@ -22,7 +22,7 @@ jobs:
     outputs:
       release_id: ${{ steps.release.outputs.result }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ env.TAG }}
       - name: Verify tag matches app version
@@ -68,7 +68,7 @@ jobs:
             rust-targets: ""
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ env.TAG }}
       - name: Install Linux dependencies
@@ -106,7 +106,7 @@ jobs:
     env:
       HAS_IOS_SIGNING: ${{ secrets.IOS_CERTIFICATE != '' && secrets.APPLE_DEVELOPMENT_TEAM != '' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ env.TAG }}
       - uses: actions/setup-node@v4
@@ -150,7 +150,7 @@ jobs:
     needs: create-release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ env.TAG }}
       - uses: actions/setup-node@v4
