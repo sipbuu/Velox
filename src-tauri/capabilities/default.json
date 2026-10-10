@@ -9,7 +9,6 @@
     "dialog:allow-open",
     "fs:default",
     "os:default",
-    "store:default",
-    "log:default"
+    "store:default"
   ]
 }

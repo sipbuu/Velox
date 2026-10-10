@@ -27,12 +27,14 @@ fn http_client() -> reqwest::Client {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
-        .plugin(
-            tauri_plugin_log::Builder::new()
-                .level(if cfg!(debug_assertions) { log::LevelFilter::Debug } else { log::LevelFilter::Info })
-                .build(),
-        )
+    let builder = tauri::Builder::default();
+    #[cfg(not(target_os = "ios"))]
+    let builder = builder.plugin(
+        tauri_plugin_log::Builder::new()
+            .level(if cfg!(debug_assertions) { log::LevelFilter::Debug } else { log::LevelFilter::Info })
+            .build(),
+    );
+    builder
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
