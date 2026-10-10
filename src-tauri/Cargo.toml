@@ -38,7 +38,7 @@ url = "2"
 base64 = "0.22"
 uuid = { version = "1", features = ["v4"] }
 walkdir = "2"
-quick-xml = "0.37"
+quick-xml = "0.42"
 flate2 = "1"
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 
