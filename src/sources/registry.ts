@@ -5,17 +5,19 @@ import { m3uFactory } from "./m3u";
 import type { MediaSource, SourceConfig, SourceConfigBase, SourceFactory, SourceSecrets } from "./types";
 import { xtreamFactory } from "./xtream";
 
-const factories = new Map<SourceKind, SourceFactory<any>>();
+type AnyFactory = SourceFactory<SourceConfigBase>;
+
+const factories = new Map<SourceKind, AnyFactory>();
 
 export function registerSourceFactory<C extends SourceConfigBase>(factory: SourceFactory<C>) {
-  factories.set(factory.kind, factory as SourceFactory<any>);
+  factories.set(factory.kind, factory as unknown as AnyFactory);
 }
 
-export function getSourceFactory(kind: SourceKind): SourceFactory<any> | undefined {
+export function getSourceFactory(kind: SourceKind): AnyFactory | undefined {
   return factories.get(kind);
 }
 
-export function listSourceFactories(): SourceFactory<any>[] {
+export function listSourceFactories(): AnyFactory[] {
   return [...factories.values()];
 }
 

@@ -14,7 +14,7 @@ interface Props {
 export const PosterCard = memo(function PosterCard({ item, onSelect, favorite, progress }: Props) {
   return (
     <button
-      className="group text-left tap-highlight-none focus:outline-none"
+      className="group block w-full text-left tap-highlight-none focus:outline-none"
       onClick={() => onSelect(item)}
       aria-label={item.title}
     >

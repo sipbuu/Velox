@@ -18,8 +18,9 @@ import { useSettings } from "@/store/settings";
 import { useLibrary } from "@/store/library";
 import { useDownloads } from "@/store/downloads";
 import { useResolvedStream } from "@/hooks/useResolvedStream";
+import { useEpg } from "@/hooks/useEpgNow";
 import { subtitleBlobUrl } from "@/lib/subtitles";
-import { formatDuration } from "@/lib/format";
+import { formatDuration, formatTime } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { isTauri } from "@/lib/platform";
 import { attachEngine, type EngineHandle } from "./engines";
@@ -46,6 +47,7 @@ export function VeloxPlayer({ request, onClose, onEnded }: Props) {
   const markWatched = useLibrary((s) => s.markWatched);
   const enqueueDownload = useDownloads((s) => s.enqueue);
   const { stream, error: resolveError } = useResolvedStream(request);
+  const { current: nowOnAir } = useEpg(request.isLive ? request.item : undefined);
 
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
@@ -350,7 +352,11 @@ export function VeloxPlayer({ request, onClose, onEnded }: Props) {
           </button>
           <div className="min-w-0 flex-1">
             <p className="truncate text-base font-semibold">{request.title}</p>
-            {request.subtitle && <p className="truncate text-xs text-white/60">{request.subtitle}</p>}
+            {(nowOnAir || request.subtitle) && (
+              <p className="truncate text-xs text-white/60">
+                {nowOnAir ? `${formatTime(nowOnAir.start)}–${formatTime(nowOnAir.end)} · ${nowOnAir.title}` : request.subtitle}
+              </p>
+            )}
           </div>
           {stream?.timeshift === "software" && (
             <span className="glass-dark rounded-full px-2.5 py-1 text-[11px] font-medium text-white/80">Buffer cache</span>

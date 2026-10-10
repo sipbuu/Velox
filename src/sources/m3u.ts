@@ -1,7 +1,16 @@
 import { fetchText } from "@/lib/http";
 import { detectContainer } from "@/lib/container";
 import { hashString } from "@/lib/fallbackArt";
-import { mediaUid, type Category, type LibrarySnapshot, type MediaItem, type PlaybackRequest } from "@/types/media";
+import { invoke } from "@/lib/ipc";
+import { isTauri } from "@/lib/platform";
+import {
+  mediaUid,
+  type Category,
+  type EpgProgramme,
+  type LibrarySnapshot,
+  type MediaItem,
+  type PlaybackRequest,
+} from "@/types/media";
 import { parseM3U, type M3UEntry } from "./m3uParser";
 import type { LoadContext, M3UConfig, MediaSource, SourceCapabilities, SourceFactory, SourceSecrets } from "./types";
 
@@ -24,6 +33,7 @@ export class M3USource implements MediaSource<M3UConfig> {
 
   private entries = new Map<string, M3UEntry>();
   private items: MediaItem[] = [];
+  private epg?: Promise<Map<string, EpgProgramme[]>>;
 
   constructor(readonly config: M3UConfig) {}
 
@@ -77,6 +87,26 @@ export class M3USource implements MediaSource<M3UConfig> {
 
     this.items = items;
     return { categories: [...cats.values()], items, fetchedAt: Date.now() };
+  }
+
+  async getEpg(channel: MediaItem): Promise<EpgProgramme[]> {
+    if (channel.kind !== "live" || !channel.epgChannelId || !this.config.epgUrl || !isTauri()) return [];
+    this.epg ??= invoke<EpgProgramme[]>("epg_fetch_xmltv", { url: this.config.epgUrl, channelIds: null })
+      .then((list) => {
+        const map = new Map<string, EpgProgramme[]>();
+        for (const p of list) {
+          const arr = map.get(p.channelId) ?? [];
+          arr.push(p);
+          map.set(p.channelId, arr);
+        }
+        map.forEach((arr) => arr.sort((a, b) => a.start - b.start));
+        return map;
+      })
+      .catch((e) => {
+        this.epg = undefined;
+        throw e;
+      });
+    return (await this.epg).get(channel.epgChannelId) ?? [];
   }
 
   async search(query: string): Promise<MediaItem[]> {

@@ -3,7 +3,6 @@ name = "velox"
 version = "1.0.0"
 description = "Velox: a universal multi-source media player and streaming client"
 authors = ["Velox contributors"]
-license = "MIT"
 repository = "https://github.com/sipbuu/Velox"
 edition = "2021"
 rust-version = "1.80"

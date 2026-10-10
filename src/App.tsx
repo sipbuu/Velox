@@ -11,14 +11,22 @@ import { SettingsPage } from "@/pages/SettingsPage";
 import { DownloadsPage } from "@/pages/DownloadsPage";
 import { useThemeSync } from "@/hooks/useTheme";
 import { useDownloads } from "@/store/downloads";
+import { useSettings } from "@/store/settings";
+import { invoke } from "@/lib/ipc";
+import { isTauri } from "@/lib/platform";
 
 export default function App() {
   useThemeSync();
   const initDownloads = useDownloads((s) => s.init);
+  const concurrency = useSettings((s) => s.downloadConcurrency);
 
   useEffect(() => {
     void initDownloads();
   }, [initDownloads]);
+
+  useEffect(() => {
+    if (isTauri()) void invoke("downloads_set_concurrency", { n: concurrency }).catch(() => {});
+  }, [concurrency]);
 
   return (
     <HashRouter>

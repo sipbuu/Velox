@@ -15,7 +15,7 @@ export const ChannelTile = memo(function ChannelTile({ item, onSelect, favorite,
   const pct = nowPlaying ? (Date.now() - nowPlaying.start) / Math.max(1, nowPlaying.end - nowPlaying.start) : 0;
   return (
     <button
-      className="poster-card glass group flex flex-col gap-3 p-3 text-left tap-highlight-none"
+      className="poster-card glass group flex w-full flex-col gap-3 p-3 text-left tap-highlight-none"
       onClick={() => onSelect(item)}
       aria-label={item.title}
     >
