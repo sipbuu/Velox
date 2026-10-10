@@ -1,0 +1,82 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.yarn/
+!.yarn/releases
+
+# Frontend build output
+dist/
+dist-ssr/
+*.local
+.vite/
+coverage/
+*.tsbuildinfo
+
+# Rust / Tauri
+src-tauri/target/
+target/
+src-tauri/gen/schemas/
+src-tauri/WixTools/
+**/*.rs.bk
+
+# Tauri mobile (regenerate with `tauri ios init` / `tauri android init`)
+src-tauri/gen/apple/build/
+src-tauri/gen/apple/DerivedData/
+src-tauri/gen/apple/Externals/
+src-tauri/gen/apple/*.xcodeproj/xcuserdata/
+src-tauri/gen/apple/*.xcodeproj/project.xcworkspace/xcuserdata/
+src-tauri/gen/apple/Pods/
+src-tauri/gen/android/.gradle/
+src-tauri/gen/android/build/
+src-tauri/gen/android/app/build/
+src-tauri/gen/android/local.properties
+src-tauri/gen/android/keystore.properties
+
+# Apple / signing artifacts
+*.ipa
+*.dSYM.zip
+*.dSYM/
+*.p12
+*.p8
+*.mobileprovision
+*.provisionprofile
+*.cer
+*.keystore
+*.jks
+xcuserdata/
+
+# Local media, caches and downloads produced while testing
+/downloads/
+/timeshift-cache/
+*.ts.part
+*.part
+*.m3u
+*.m3u8
+!src/**/*.m3u
+!src/**/*.m3u8
+!fixtures/**
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+*.pem
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini

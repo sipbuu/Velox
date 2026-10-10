@@ -1,0 +1,149 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root,
+  [data-theme="light"] {
+    color-scheme: light;
+    --v-canvas: 242 242 247;
+    --v-surface: 255 255 255;
+    --v-ink: 17 17 22;
+    --v-ink-muted: 72 72 84;
+    --v-ink-faint: 142 142 152;
+    --v-accent: 10 132 255;
+    --v-accent-soft: 214 232 255;
+    --v-accent-contrast: 255 255 255;
+    --v-glass: 255 255 255;
+    --v-glass-alpha: 0.55;
+    --v-glass-strong: 250 250 252;
+    --v-glass-strong-alpha: 0.78;
+    --v-glass-edge: 255 255 255;
+    --v-glass-edge-alpha: 0.7;
+    --v-glass-shine: 255 255 255;
+    --v-shadow-alpha: 0.12;
+    --v-aurora-1: 120 160 255;
+    --v-aurora-2: 255 150 200;
+    --v-aurora-3: 120 220 200;
+  }
+
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --v-canvas: 8 8 12;
+    --v-surface: 22 22 28;
+    --v-ink: 245 245 250;
+    --v-ink-muted: 184 184 196;
+    --v-ink-faint: 112 112 124;
+    --v-accent: 10 132 255;
+    --v-accent-soft: 20 46 84;
+    --v-accent-contrast: 255 255 255;
+    --v-glass: 40 40 50;
+    --v-glass-alpha: 0.45;
+    --v-glass-strong: 28 28 36;
+    --v-glass-strong-alpha: 0.72;
+    --v-glass-edge: 255 255 255;
+    --v-glass-edge-alpha: 0.12;
+    --v-glass-shine: 255 255 255;
+    --v-shadow-alpha: 0.5;
+    --v-aurora-1: 70 90 255;
+    --v-aurora-2: 190 60 160;
+    --v-aurora-3: 20 160 150;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-canvas text-ink font-sans antialiased tap-highlight-none;
+    overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    @apply bg-velox-aurora;
+  }
+
+  ::selection {
+    background: rgb(var(--v-accent) / 0.3);
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--v-accent));
+    outline-offset: 2px;
+  }
+
+  video::cue {
+    font-family: var(--v-cue-font, inherit);
+    font-size: var(--v-cue-size, 1em);
+    color: var(--v-cue-color, #fff);
+    background: var(--v-cue-bg, rgb(0 0 0 / 0.6));
+    text-shadow: var(--v-cue-shadow, 0 1px 2px rgb(0 0 0 / 0.8));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 1ms !important;
+      transition-duration: 1ms !important;
+    }
+  }
+}
+
+@layer components {
+  .poster-card {
+    @apply relative overflow-hidden rounded-glass shadow-poster transition-[transform,box-shadow] duration-300 ease-spring will-change-transform;
+  }
+  .poster-card:hover,
+  .poster-card:focus-visible {
+    @apply -translate-y-1 scale-[1.035] shadow-glass-lift;
+  }
+  .poster-card:active {
+    @apply scale-[0.97] duration-150;
+  }
+
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      rgb(var(--v-ink) / 0.06) 25%,
+      rgb(var(--v-ink) / 0.12) 37%,
+      rgb(var(--v-ink) / 0.06) 63%
+    );
+    background-size: 400% 100%;
+    @apply animate-shimmer;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ease-spring active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-accent-contrast shadow-accent-glow hover:brightness-110;
+  }
+  .btn-glass {
+    @apply btn glass-pill text-ink hover:bg-glass-strong/70;
+  }
+
+  .input {
+    @apply w-full rounded-xl glass px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-faint outline-none focus:ring-2 focus:ring-accent/60;
+  }
+
+  .range {
+    @apply h-1 w-full cursor-pointer appearance-none rounded-full bg-white/25 accent-white;
+  }
+}
+
+[data-reduce-transparency] .glass,
+[data-reduce-transparency] .glass-strong,
+[data-reduce-transparency] .glass-pill {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background-color: rgb(var(--v-surface));
+}

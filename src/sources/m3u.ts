@@ -1,0 +1,115 @@
+import { fetchText } from "@/lib/http";
+import { detectContainer } from "@/lib/container";
+import { hashString } from "@/lib/fallbackArt";
+import { mediaUid, type Category, type LibrarySnapshot, type MediaItem, type PlaybackRequest } from "@/types/media";
+import { parseM3U, type M3UEntry } from "./m3uParser";
+import type { LoadContext, M3UConfig, MediaSource, SourceCapabilities, SourceFactory, SourceSecrets } from "./types";
+
+const playlistTextCache = new Map<string, string>();
+
+export function registerLocalPlaylist(sourceId: string, text: string) {
+  playlistTextCache.set(sourceId, text);
+}
+
+export class M3USource implements MediaSource<M3UConfig> {
+  readonly capabilities: SourceCapabilities = {
+    live: true,
+    movies: true,
+    series: true,
+    epg: true,
+    catchup: false,
+    search: true,
+    downloads: true,
+  };
+
+  private entries = new Map<string, M3UEntry>();
+  private items: MediaItem[] = [];
+
+  constructor(readonly config: M3UConfig) {}
+
+  async loadLibrary(ctx?: LoadContext): Promise<LibrarySnapshot> {
+    ctx?.onProgress?.("Downloading playlist", 0.1);
+    let text = playlistTextCache.get(this.config.id);
+    if (!text) {
+      if (!this.config.url) throw new Error("This playlist was imported from a file. Re-import it to refresh.");
+      text = await fetchText(this.config.url, { signal: ctx?.signal, userAgent: this.config.userAgent, timeoutMs: 120_000 });
+    }
+    ctx?.onProgress?.("Parsing playlist", 0.6);
+    const pl = parseM3U(text);
+    if (!this.config.epgUrl && pl.epgUrls[0]) this.config.epgUrl = pl.epgUrls[0];
+
+    const sid = this.config.id;
+    const cats = new Map<string, Category>();
+    const items: MediaItem[] = [];
+    this.entries.clear();
+
+    pl.entries.forEach((e, idx) => {
+      const kind = e.kind;
+      const group = e.group || "Uncategorized";
+      const catId = `${kind}:${group}`;
+      if (!cats.has(catId)) cats.set(catId, { id: catId, sourceId: sid, kind, name: group, itemCount: 0 });
+      cats.get(catId)!.itemCount! += 1;
+
+      const id = `${hashString(e.url).toString(36)}${idx.toString(36)}`;
+      this.entries.set(id, e);
+      const base = {
+        uid: mediaUid(sid, kind, id),
+        id,
+        sourceId: sid,
+        title: e.title,
+        categoryIds: [catId],
+        extra: { url: e.url, headers: e.headers, group: e.group },
+      };
+      if (kind === "live") {
+        items.push({ ...base, kind, artwork: { logo: e.logo }, epgChannelId: e.tvgId, number: idx + 1 });
+      } else if (kind === "movie") {
+        items.push({
+          ...base,
+          kind,
+          artwork: { poster: e.logo },
+          durationSec: e.duration > 0 ? e.duration : undefined,
+          container: detectContainer(e.url),
+        });
+      } else {
+        items.push({ ...base, kind: "series", artwork: { poster: e.logo } });
+      }
+    });
+
+    this.items = items;
+    return { categories: [...cats.values()], items, fetchedAt: Date.now() };
+  }
+
+  async search(query: string): Promise<MediaItem[]> {
+    const q = query.toLowerCase();
+    return this.items.filter((i) => i.title.toLowerCase().includes(q)).slice(0, 200);
+  }
+
+  async resolvePlayback(item: MediaItem): Promise<PlaybackRequest> {
+    const e =
+      this.entries.get(item.id) ??
+      (typeof item.extra?.url === "string"
+        ? { url: item.extra.url, headers: (item.extra.headers as Record<string, string>) ?? {}, group: item.extra.group as string | undefined }
+        : undefined);
+    if (!e) throw new Error("Stream no longer exists in this playlist. Try refreshing.");
+    const headers = { ...(this.config.userAgent ? { "User-Agent": this.config.userAgent } : {}), ...e.headers };
+    const container = detectContainer(e.url);
+    return {
+      url: e.url,
+      container,
+      isLive: item.kind === "live",
+      headers: Object.keys(headers).length ? headers : undefined,
+      title: item.title,
+      subtitle: e.group,
+      artwork: item.artwork,
+      item,
+    };
+  }
+}
+
+export const m3uFactory: SourceFactory<M3UConfig> = {
+  kind: "m3u",
+  label: "M3U / M3U8 Playlist",
+  description: "A playlist URL or an imported .m3u file. EPG is read from url-tvg when present.",
+  secretFields: [],
+  create: (config: M3UConfig, _secrets: SourceSecrets) => new M3USource(config),
+};
