@@ -33,7 +33,7 @@ jobs:
           echo "tag=$TAG package=$PKG tauri=$CONF cargo=$CARGO"
           [ "v$PKG" = "$TAG" ] && [ "$PKG" = "$CONF" ] && [ "$PKG" = "$CARGO" ]
       - id: release
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           result-encoding: string
           script: |
