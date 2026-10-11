@@ -16,6 +16,7 @@ export interface SourceDetail {
   poster?: string;
   tmdbId?: string;
   imdbId?: string;
+  castMembers?: CastMember[];
 }
 
 export interface Rating {
@@ -197,7 +198,7 @@ async function build(item: MediaItem, detail: SourceDetail): Promise<TitleMetada
     trailerKey: youtubeKey(detail.trailer),
     trailerUrl: detail.trailer && !youtubeKey(detail.trailer) && /^https?:/.test(detail.trailer) ? detail.trailer : undefined,
     ratings: [],
-    cast: (detail.cast ?? "").split(/,\s*/).filter(Boolean).slice(0, 15).map((name) => ({ name })),
+    cast: detail.castMembers?.length ? detail.castMembers : (detail.cast ?? "").split(/,\s*/).filter(Boolean).slice(0, 15).map((name) => ({ name })),
     directors: (detail.director ?? "").split(/,\s*/).filter(Boolean),
     reviews: [],
     imdbId: detail.imdbId,
@@ -223,7 +224,7 @@ async function build(item: MediaItem, detail: SourceDetail): Promise<TitleMetada
         if (t.poster_path) meta.poster = meta.poster ?? `${IMG}/w500${t.poster_path}`;
         meta.trailerKey = meta.trailerKey ?? pickTrailer(t.videos?.results);
         const cast = t.credits?.cast ?? t.aggregate_credits?.cast ?? [];
-        if (cast.length)
+        if (cast.length && !detail.castMembers?.some((c) => c.photo))
           meta.cast = cast.slice(0, 20).map((c) => ({ name: c.name, role: c.character ?? c.roles?.[0]?.character, photo: c.profile_path ? `${IMG}/w185${c.profile_path}` : undefined }));
         const directors = t.credits?.crew.filter((c) => c.job === "Director").map((c) => c.name) ?? t.created_by?.map((c) => c.name) ?? [];
         if (directors.length) meta.directors = directors;

@@ -65,6 +65,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::http::http_get_text,
+            commands::http::http_request,
             commands::credentials::credentials_set,
             commands::credentials::credentials_get,
             commands::credentials::credentials_delete,

@@ -53,7 +53,21 @@ export interface DirectConfig extends SourceConfigBase {
   entries: { id: string; title: string; url: string; isLive: boolean; logo?: string }[];
 }
 
-export type KnownSourceConfig = XtreamConfig | M3UConfig | LocalConfig | DirectConfig;
+export interface JellyfinConfig extends SourceConfigBase {
+  kind: "jellyfin";
+  server: string;
+  username: string;
+  deviceId: string;
+}
+
+export interface PlexConfig extends SourceConfigBase {
+  kind: "plex";
+  server: string;
+  clientId: string;
+  serverName?: string;
+}
+
+export type KnownSourceConfig = XtreamConfig | M3UConfig | LocalConfig | DirectConfig | JellyfinConfig | PlexConfig;
 export type SourceConfig = KnownSourceConfig | (SourceConfigBase & Record<string, unknown>);
 
 export interface SourceSecrets {
@@ -82,6 +96,8 @@ export interface MediaSource<C extends SourceConfigBase = SourceConfigBase> {
   getItemDetail?(item: MediaItem, ctx?: LoadContext): Promise<SourceDetail>;
 
   getEpg?(channel: MediaItem, ctx?: LoadContext): Promise<EpgProgramme[]>;
+
+  reportProgress?(item: MediaItem, positionSec: number, durationSec: number | undefined, state: "playing" | "paused" | "stopped"): Promise<void>;
 
   search?(query: string, kinds?: MediaKind[], ctx?: LoadContext): Promise<MediaItem[]>;
 

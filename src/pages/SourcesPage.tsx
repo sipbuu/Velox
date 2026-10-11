@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
-import { FolderOpen, Link2, ListVideo, Plus, RefreshCw, Server, Trash2, Upload } from "lucide-react";
+import { Clapperboard, FolderOpen, Link2, ListVideo, Plus, RefreshCw, Server, Trash2, Tv2, Upload } from "lucide-react";
+import { JellyfinForm, PlexForm } from "@/pages/sources/MediaServerForms";
 import { useSources } from "@/store/sources";
 import { useLibrary } from "@/store/library";
 import { listSourceFactories } from "@/sources/registry";
@@ -18,6 +19,8 @@ const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
   m3u: ListVideo,
   local: FolderOpen,
   direct: Link2,
+  jellyfin: Tv2,
+  plex: Clapperboard,
 };
 
 export function SourcesPage() {
@@ -102,6 +105,8 @@ export function SourcesPage() {
           {adding === "m3u" && <M3UForm onSubmit={add} />}
           {adding === "local" && <LocalForm onSubmit={add} />}
           {adding === "direct" && <DirectForm onSubmit={add} />}
+          {adding === "jellyfin" && <JellyfinForm onSubmit={add} />}
+          {adding === "plex" && <PlexForm onSubmit={add} />}
         </GlassPanel>
       )}
     </div>

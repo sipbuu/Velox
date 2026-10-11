@@ -25,6 +25,7 @@ import { useSettings } from "@/store/settings";
 import { useLibrary } from "@/store/library";
 import { useDownloads } from "@/store/downloads";
 import { usePlayer } from "@/store/player";
+import { getSourceInstance } from "@/store/sources";
 import { useResolvedStream } from "@/hooks/useResolvedStream";
 import { useEpg } from "@/hooks/useEpgNow";
 import { subtitleBlobUrl } from "@/lib/subtitles";
@@ -257,14 +258,22 @@ export function VeloxPlayer() {
   useEffect(() => {
     const item = request.item;
     if (!item || catchup) return;
+    const report = (state: "playing" | "paused" | "stopped") => {
+      const v = videoRef.current;
+      if (!v || stream?.isLive) return;
+      const dur = Number.isFinite(v.duration) ? v.duration : undefined;
+      void getSourceInstance(item.sourceId).then((src) => src?.reportProgress?.(item, v.currentTime, dur, state));
+    };
     const save = () => {
       const v = videoRef.current;
       if (v && !v.ended) markWatched(item, stream?.isLive ? undefined : v.currentTime, Number.isFinite(v.duration) ? v.duration : undefined);
+      if (v && !v.ended) report(v.paused ? "paused" : "playing");
     };
     const t = window.setInterval(save, 15_000);
     return () => {
       clearInterval(t);
       save();
+      report("stopped");
     };
   }, [request.item, stream?.isLive, catchup, markWatched]);
 

@@ -53,3 +53,53 @@ export async function fetchJson<T>(url: string, opts: FetchOptions = {}): Promis
     throw new Error(`Invalid JSON from ${new URL(url).host}`);
   }
 }
+
+export interface RequestOptions extends FetchOptions {
+  method?: "GET" | "POST" | "PUT" | "DELETE";
+  body?: string;
+}
+
+export class HttpError extends Error {
+  constructor(
+    readonly status: number,
+    readonly body: string,
+    url: string,
+  ) {
+    super(`HTTP ${status} for ${new URL(url).host}`);
+  }
+}
+
+export async function request(url: string, opts: RequestOptions = {}): Promise<{ status: number; text: string }> {
+  const method = opts.method ?? "GET";
+  let status: number;
+  let text: string;
+  if (isTauri()) {
+    const res = await invoke<{ status: number; body: string }>("http_request", {
+      method,
+      url,
+      headers: { ...(opts.userAgent ? { "User-Agent": opts.userAgent } : {}), ...(opts.headers ?? {}) },
+      body: opts.body ?? null,
+      timeoutMs: opts.timeoutMs ?? DEFAULT_TIMEOUT,
+    });
+    status = res.status;
+    text = res.body;
+  } else {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), opts.timeoutMs ?? DEFAULT_TIMEOUT);
+    opts.signal?.addEventListener("abort", () => ctrl.abort(), { once: true });
+    try {
+      const res = await fetch(webProxied(url), { method, headers: opts.headers, body: opts.body, signal: ctrl.signal });
+      status = res.status;
+      text = await res.text();
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  if (status >= 400) throw new HttpError(status, text, url);
+  return { status, text };
+}
+
+export async function requestJson<T>(url: string, opts: RequestOptions = {}): Promise<T> {
+  const { text } = await request(url, { ...opts, headers: { Accept: "application/json", ...(opts.body ? { "Content-Type": "application/json" } : {}), ...(opts.headers ?? {}) } });
+  return (text ? JSON.parse(text) : {}) as T;
+}

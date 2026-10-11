@@ -4,6 +4,8 @@ import { localFactory } from "./local";
 import { m3uFactory } from "./m3u";
 import type { MediaSource, SourceConfig, SourceConfigBase, SourceFactory, SourceSecrets } from "./types";
 import { xtreamFactory } from "./xtream";
+import { jellyfinFactory } from "./jellyfin";
+import { plexFactory } from "./plex";
 
 type AnyFactory = SourceFactory<SourceConfigBase>;
 
@@ -31,3 +33,5 @@ registerSourceFactory(xtreamFactory);
 registerSourceFactory(m3uFactory);
 registerSourceFactory(localFactory);
 registerSourceFactory(directFactory);
+registerSourceFactory(jellyfinFactory);
+registerSourceFactory(plexFactory);
