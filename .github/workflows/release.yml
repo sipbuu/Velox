@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing tag to (re)build, e.g. v1.0.0"
+        description: "Tag to build, e.g. v1.0.0 (created from the selected branch if it doesn't exist)"
         required: true
 
 permissions:
@@ -22,6 +22,17 @@ jobs:
     outputs:
       release_id: ${{ steps.release.outputs.result }}
     steps:
+      - name: Create tag for manual runs
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const tag = process.env.TAG;
+            try {
+              await github.rest.git.getRef({ owner: context.repo.owner, repo: context.repo.repo, ref: `tags/${tag}` });
+            } catch {
+              await github.rest.git.createRef({ owner: context.repo.owner, repo: context.repo.repo, ref: `refs/tags/${tag}`, sha: context.sha });
+            }
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.TAG }}
