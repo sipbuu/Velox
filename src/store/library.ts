@@ -1,9 +1,12 @@
+import { useMemo } from "react";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { kvStorage } from "@/lib/kv";
 import { isTauri } from "@/lib/platform";
+import { categoryKey, isCategoryHidden, isItemHidden, type ContentFilter } from "@/lib/contentFilter";
 import type { Category, LibrarySnapshot, MediaItem, MediaKind } from "@/types/media";
 import { getSourceInstance, useSources } from "./sources";
+import { useFilters } from "./filters";
 
 interface SourceStatus {
   state: "idle" | "loading" | "ready" | "error";
@@ -11,19 +14,33 @@ interface SourceStatus {
   progress?: number;
 }
 
+export interface RecentEntry {
+  uid: string;
+  at: number;
+  position?: number;
+  duration?: number;
+  finished?: boolean;
+  item?: MediaItem;
+}
+
 interface LibraryState {
   snapshots: Record<string, LibrarySnapshot>;
   status: Record<string, SourceStatus>;
   favorites: string[];
-  recents: { uid: string; at: number; position?: number; duration?: number }[];
+  favoriteItems: Record<string, MediaItem>;
+  recents: RecentEntry[];
   refresh: (sourceId: string) => Promise<void>;
   refreshAll: () => Promise<void>;
-  toggleFavorite: (uid: string) => void;
-  markWatched: (uid: string, position?: number, duration?: number) => void;
+  toggleFavorite: (item: MediaItem | string) => void;
+  markWatched: (item: MediaItem, position?: number, duration?: number) => void;
+  clearRecent: (uid: string) => void;
   dropSnapshot: (sourceId: string) => void;
 }
 
 const controllers = new Map<string, AbortController>();
+const FINISHED_RATIO = 0.94;
+
+export const leanItem = (item: MediaItem): MediaItem => ({ ...item, plot: item.plot?.slice(0, 280) });
 
 export const useLibrary = create<LibraryState>()(
   persist(
@@ -31,6 +48,7 @@ export const useLibrary = create<LibraryState>()(
       snapshots: {},
       status: {},
       favorites: [],
+      favoriteItems: {},
       recents: [],
       async refresh(sourceId) {
         controllers.get(sourceId)?.abort();
@@ -58,15 +76,28 @@ export const useLibrary = create<LibraryState>()(
         const ids = useSources.getState().configs.filter((c) => c.enabled).map((c) => c.id);
         await Promise.allSettled(ids.map((id) => get().refresh(id)));
       },
-      toggleFavorite(uid) {
+      toggleFavorite(target) {
+        const uid = typeof target === "string" ? target : target.uid;
+        set((s) => {
+          if (s.favorites.includes(uid)) {
+            const { [uid]: _drop, ...favoriteItems } = s.favoriteItems;
+            return { favorites: s.favorites.filter((f) => f !== uid), favoriteItems };
+          }
+          const favoriteItems = typeof target === "string" ? s.favoriteItems : { ...s.favoriteItems, [uid]: leanItem(target) };
+          return { favorites: [uid, ...s.favorites], favoriteItems };
+        });
+      },
+      markWatched(item, position, duration) {
+        const finished = !!(position && duration && position / duration >= FINISHED_RATIO);
         set((s) => ({
-          favorites: s.favorites.includes(uid) ? s.favorites.filter((f) => f !== uid) : [uid, ...s.favorites],
+          recents: [
+            { uid: item.uid, at: Date.now(), position, duration, finished, item: leanItem(item) },
+            ...s.recents.filter((r) => r.uid !== item.uid),
+          ].slice(0, 80),
         }));
       },
-      markWatched(uid, position, duration) {
-        set((s) => ({
-          recents: [{ uid, at: Date.now(), position, duration }, ...s.recents.filter((r) => r.uid !== uid)].slice(0, 60),
-        }));
+      clearRecent(uid) {
+        set((s) => ({ recents: s.recents.filter((r) => r.uid !== uid) }));
       },
       dropSnapshot(sourceId) {
         set((s) => {
@@ -78,9 +109,18 @@ export const useLibrary = create<LibraryState>()(
     }),
     {
       name: "velox.library",
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => kvStorage),
-      partialize: (s) => ({ favorites: s.favorites, recents: s.recents, snapshots: isTauri() ? s.snapshots : {} }),
+      migrate: (persisted) => {
+        const p = (persisted ?? {}) as Partial<LibraryState>;
+        return { ...p, favoriteItems: p.favoriteItems ?? {}, recents: (p.recents ?? []).filter((r) => r && r.uid) } as LibraryState;
+      },
+      partialize: (s) => ({
+        favorites: s.favorites,
+        favoriteItems: s.favoriteItems,
+        recents: s.recents,
+        snapshots: isTauri() ? s.snapshots : {},
+      }),
     },
   ),
 );
@@ -89,37 +129,57 @@ export interface UnifiedView {
   categories: Category[];
   items: MediaItem[];
   byUid: Map<string, MediaItem>;
+  hiddenCount: number;
 }
 
-let memo: { key: unknown; enabled: string; view: UnifiedView } | undefined;
-
-export function selectUnified(snapshots: Record<string, LibrarySnapshot>, enabledIds: string[]): UnifiedView {
-  const enabled = enabledIds.join("|");
-  if (memo && memo.key === snapshots && memo.enabled === enabled) return memo.view;
+export function buildUnified(snapshots: Record<string, LibrarySnapshot>, enabledIds: string[], filter: ContentFilter | null): UnifiedView {
   const categories: Category[] = [];
   const items: MediaItem[] = [];
+  const hiddenCats = new Set<string>();
+  let hiddenCount = 0;
   for (const id of enabledIds) {
     const snap = snapshots[id];
     if (!snap) continue;
-    categories.push(...snap.categories);
-    items.push(...snap.items);
+    for (const c of snap.categories) {
+      if (filter && isCategoryHidden(c, filter)) hiddenCats.add(categoryKey(c));
+      else categories.push(c);
+    }
+    for (const i of snap.items) {
+      if (filter && isItemHidden(i, hiddenCats, filter)) hiddenCount++;
+      else items.push(i);
+    }
   }
-  const view = { categories, items, byUid: new Map(items.map((i) => [i.uid, i])) };
-  memo = { key: snapshots, enabled, view };
-  return view;
+  return { categories, items, byUid: new Map(items.map((i) => [i.uid, i])), hiddenCount };
+}
+
+export function useContentFilter(): ContentFilter {
+  const { hiddenCategories, hiddenItems, hideAdult, showHidden } = useFilters();
+  return useMemo(
+    () => ({ hiddenCategories: new Set(hiddenCategories), hiddenItems: new Set(hiddenItems), hideAdult, bypass: showHidden }),
+    [hiddenCategories, hiddenItems, hideAdult, showHidden],
+  );
+}
+
+function useEnabledIds() {
+  const configs = useSources((s) => s.configs);
+  return useMemo(() => configs.filter((c) => c.enabled).map((c) => c.id), [configs]);
 }
 
 export function useUnifiedLibrary(): UnifiedView {
   const snapshots = useLibrary((s) => s.snapshots);
-  const configs = useSources((s) => s.configs);
-  return selectUnified(
-    snapshots,
-    configs.filter((c) => c.enabled).map((c) => c.id),
-  );
+  const enabled = useEnabledIds();
+  const filter = useContentFilter();
+  return useMemo(() => buildUnified(snapshots, enabled, filter), [snapshots, enabled, filter]);
+}
+
+export function useRawLibrary(): UnifiedView {
+  const snapshots = useLibrary((s) => s.snapshots);
+  const enabled = useEnabledIds();
+  return useMemo(() => buildUnified(snapshots, enabled, null), [snapshots, enabled]);
 }
 
 export function itemsOfKind(view: UnifiedView, kind: MediaKind, categoryId?: string): MediaItem[] {
   return view.items.filter((i) => i.kind === kind && (!categoryId || i.categoryIds.includes(categoryId)));
 }
 
-export const categoryKey = (c: Category) => `${c.sourceId}::${c.id}`;
+export { categoryKey };

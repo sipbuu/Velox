@@ -187,18 +187,18 @@ export function VeloxPlayer({ request, onClose, onEnded }: Props) {
   }, []);
 
   useEffect(() => {
-    const uid = request.item?.uid;
-    if (!uid) return;
+    const item = request.item;
+    if (!item) return;
     const save = () => {
       const v = videoRef.current;
-      if (v) markWatched(uid, stream?.isLive ? undefined : v.currentTime, Number.isFinite(v.duration) ? v.duration : undefined);
+      if (v) markWatched(item, stream?.isLive ? undefined : v.currentTime, Number.isFinite(v.duration) ? v.duration : undefined);
     };
     const t = window.setInterval(save, 15_000);
     return () => {
       clearInterval(t);
       save();
     };
-  }, [request.item?.uid, stream?.isLive, markWatched]);
+  }, [request.item, stream?.isLive, markWatched]);
 
   const poke = useCallback(() => {
     setControlsVisible(true);

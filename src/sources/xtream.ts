@@ -33,6 +33,7 @@ interface XtLive {
   category_ids?: (number | string)[];
   tv_archive?: number | string;
   tv_archive_duration?: number | string;
+  is_adult?: number | string;
 }
 
 interface XtVod {
@@ -47,6 +48,7 @@ interface XtVod {
   year?: string | number;
   plot?: string;
   genre?: string;
+  is_adult?: number | string;
 }
 
 interface XtSeries {
@@ -204,6 +206,7 @@ export class XtreamSource implements MediaSource<XtreamConfig> {
         hasArchive: String(l.tv_archive) === "1",
         archiveDays: num(l.tv_archive_duration),
         addedAt: num(l.added) ? num(l.added)! * 1000 : undefined,
+        extra: String(l.is_adult) === "1" ? { adult: true } : undefined,
       } satisfies LiveChannel);
     }
     for (const v of vod) {
@@ -222,7 +225,7 @@ export class XtreamSource implements MediaSource<XtreamConfig> {
         genres: v.genre?.split(/,\s*/),
         container: detectContainer("", v.container_extension),
         addedAt: num(v.added) ? num(v.added)! * 1000 : undefined,
-        extra: { ext: v.container_extension ?? "mp4" },
+        extra: { ext: v.container_extension ?? "mp4", ...(String(v.is_adult) === "1" ? { adult: true } : {}) },
       } satisfies Movie);
     }
     for (const s of series) {

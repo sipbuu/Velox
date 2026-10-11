@@ -17,6 +17,7 @@ export interface Category {
   name: string;
   parentId?: string;
   itemCount?: number;
+  adult?: boolean;
 }
 
 export interface SubtitleTrackRef {

@@ -1,22 +1,35 @@
-import { memo } from "react";
-import { Heart, Star } from "lucide-react";
+import { memo, type KeyboardEvent } from "react";
+import { Star } from "lucide-react";
 import type { MediaItem } from "@/types/media";
 import { Artwork } from "./Artwork";
-import { cn } from "@/lib/cn";
+import { FavoriteButton } from "./FavoriteButton";
+import { useLongPress } from "@/hooks/useLongPress";
+import { useUi } from "@/store/ui";
 
 interface Props {
   item: MediaItem;
   onSelect: (item: MediaItem) => void;
-  favorite?: boolean;
   progress?: number;
 }
 
-export const PosterCard = memo(function PosterCard({ item, onSelect, favorite, progress }: Props) {
+export const PosterCard = memo(function PosterCard({ item, onSelect, progress }: Props) {
+  const openSheet = useUi((s) => s.openSheet);
+  const press = useLongPress((x, y) => openSheet({ item, x, y }));
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onSelect(item);
+    }
+  };
   return (
-    <button
-      className="group block w-full text-left tap-highlight-none focus:outline-none"
-      onClick={() => onSelect(item)}
+    <div
+      role="button"
+      tabIndex={0}
       aria-label={item.title}
+      className="group block w-full cursor-pointer select-none text-left tap-highlight-none focus:outline-none"
+      onClick={() => onSelect(item)}
+      onKeyDown={onKey}
+      {...press}
     >
       <div className="poster-card aspect-[2/3] bg-surface">
         <Artwork src={item.artwork.poster} title={item.title} className="absolute inset-0" />
@@ -27,19 +40,15 @@ export const PosterCard = memo(function PosterCard({ item, onSelect, favorite, p
             <Star size={11} fill="currentColor" className="text-warning" /> {item.rating.toFixed(1)}
           </span>
         ) : null}
-        {favorite && (
-          <span className="glass-dark absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full">
-            <Heart size={12} fill="currentColor" className="text-live" />
-          </span>
-        )}
+        <FavoriteButton item={item} className="absolute right-2 top-2" />
         {progress != null && progress > 0.02 && (
           <div className="absolute inset-x-2 bottom-2 h-1 overflow-hidden rounded-full bg-white/25">
             <div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(100, progress * 100)}%` }} />
           </div>
         )}
       </div>
-      <p className={cn("mt-2 line-clamp-2 text-[13px] font-medium leading-snug text-ink")}>{item.title}</p>
+      <p className="mt-2 line-clamp-2 text-[13px] font-medium leading-snug text-ink">{item.title}</p>
       {item.year && <p className="text-xs text-ink-faint">{item.year}</p>}
-    </button>
+    </div>
   );
 });

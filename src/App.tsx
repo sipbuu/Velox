@@ -9,6 +9,10 @@ import { SearchPage } from "@/pages/SearchPage";
 import { SourcesPage } from "@/pages/SourcesPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { DownloadsPage } from "@/pages/DownloadsPage";
+import { FavoritesPage } from "@/pages/FavoritesPage";
+import { MorePage } from "@/pages/MorePage";
+import { ActionSheet } from "@/components/ui/ActionSheet";
+import { PinPrompt } from "@/components/ui/PinPrompt";
 import { useThemeSync } from "@/hooks/useTheme";
 import { useNativeChrome } from "@/hooks/useNativeChrome";
 import { useDownloads } from "@/store/downloads";
@@ -41,11 +45,15 @@ export default function App() {
           <Route path="series/:uid" element={<SeriesDetailPage />} />
           <Route path="search" element={<SearchPage />} />
           <Route path="downloads" element={<DownloadsPage />} />
+          <Route path="favorites" element={<FavoritesPage />} />
+          <Route path="more" element={<MorePage />} />
           <Route path="sources" element={<SourcesPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Routes>
       <PlayerHost />
+      <ActionSheet />
+      <PinPrompt />
     </HashRouter>
   );
 }

@@ -60,7 +60,8 @@ export class M3USource implements MediaSource<M3UConfig> {
       if (!cats.has(catId)) cats.set(catId, { id: catId, sourceId: sid, kind, name: group, itemCount: 0 });
       cats.get(catId)!.itemCount! += 1;
 
-      const id = `${hashString(e.url).toString(36)}${idx.toString(36)}`;
+      let id = `${hashString(e.url).toString(36)}${hashString(e.tvgId ?? e.title).toString(36).slice(0, 4)}`;
+      for (let n = 2; this.entries.has(id); n++) id = `${id.split("~")[0]}~${n}`;
       this.entries.set(id, e);
       const base = {
         uid: mediaUid(sid, kind, id),

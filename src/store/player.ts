@@ -5,9 +5,13 @@ import { getSourceInstance } from "./sources";
 interface PlayerState {
   request: PlaybackRequest | null;
   queue: MediaItem[];
+  channelList: MediaItem[];
   error: string | null;
   loading: boolean;
-  play: (item: MediaItem, opts?: { catchupStart?: number; catchupDurationMin?: number; queue?: MediaItem[] }) => Promise<void>;
+  play: (
+    item: MediaItem,
+    opts?: { catchupStart?: number; catchupDurationMin?: number; queue?: MediaItem[]; channels?: MediaItem[] },
+  ) => Promise<void>;
   playRequest: (req: PlaybackRequest) => void;
   next: () => Promise<void>;
   stop: () => void;
@@ -16,6 +20,7 @@ interface PlayerState {
 export const usePlayer = create<PlayerState>((set, get) => ({
   request: null,
   queue: [],
+  channelList: [],
   error: null,
   loading: false,
   async play(item, opts) {
@@ -24,7 +29,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
       const src = await getSourceInstance(item.sourceId);
       if (!src) throw new Error("Source unavailable");
       const request = await src.resolvePlayback(item, opts);
-      set({ request, loading: false, queue: opts?.queue ?? get().queue });
+      set({ request, loading: false, queue: opts?.queue ?? get().queue, channelList: opts?.channels ?? get().channelList });
     } catch (err) {
       set({ error: (err as Error).message, loading: false });
     }

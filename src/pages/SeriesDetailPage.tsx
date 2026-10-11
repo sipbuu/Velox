@@ -61,7 +61,7 @@ export function SeriesDetailPage() {
                   <Play size={16} fill="currentColor" /> Play
                 </button>
               )}
-              <button className="btn-glass" onClick={() => toggleFavorite(series.uid)}>
+              <button className="btn-glass" onClick={() => toggleFavorite(series)}>
                 <Heart size={16} fill={fav ? "currentColor" : "none"} className={fav ? "text-live" : ""} />
               </button>
             </div>

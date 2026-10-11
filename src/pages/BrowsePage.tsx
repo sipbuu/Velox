@@ -22,7 +22,6 @@ const META = {
 export function BrowsePage({ kind }: { kind: "live" | "movie" | "series" }) {
   const view = useUnifiedLibrary();
   const favorites = useLibrary((s) => s.favorites);
-  const toggleFavorite = useLibrary((s) => s.toggleFavorite);
   const play = usePlayer((s) => s.play);
   const navigate = useNavigate();
   const [category, setCategory] = useState<string>();
@@ -47,8 +46,7 @@ export function BrowsePage({ kind }: { kind: "live" | "movie" | "series" }) {
   const select = (item: MediaItem) => {
     if (item.kind === "series") navigate(`/series/${encodeURIComponent(item.uid)}`);
     else {
-      const queue = item.kind === "live" ? [] : undefined;
-      void play(item, { queue });
+      void play(item, item.kind === "live" ? { queue: [], channels: items } : undefined);
     }
   };
 
@@ -87,11 +85,7 @@ export function BrowsePage({ kind }: { kind: "live" | "movie" | "series" }) {
           aspect={9 / 16}
           footerHeight={84}
           getKey={(i) => i.uid}
-          render={(i) => (
-            <div onContextMenu={(e) => (e.preventDefault(), toggleFavorite(i.uid))}>
-              <ChannelTile item={i} onSelect={select} favorite={favSet.has(i.uid)} />
-            </div>
-          )}
+          render={(i) => <ChannelTile item={i} onSelect={select} />}
         />
       ) : (
         <VirtualGrid
@@ -100,11 +94,7 @@ export function BrowsePage({ kind }: { kind: "live" | "movie" | "series" }) {
           aspect={1.5}
           footerHeight={56}
           getKey={(i) => i.uid}
-          render={(i) => (
-            <div onContextMenu={(e) => (e.preventDefault(), toggleFavorite(i.uid))}>
-              <PosterCard item={i} onSelect={select} favorite={favSet.has(i.uid)} />
-            </div>
-          )}
+          render={(i) => <PosterCard item={i} onSelect={select} />}
         />
       )}
     </div>

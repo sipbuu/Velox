@@ -1,18 +1,23 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { Clapperboard, Download, Home, Layers, Search, Settings, Tv } from "lucide-react";
+import { CalendarDays, Clapperboard, Download, Heart, Home, Layers, LayoutGrid, Search, Settings, Tv } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 const NAV = [
   { to: "/", label: "Home", icon: Home, end: true },
   { to: "/live", label: "Live TV", icon: Tv },
+  { to: "/guide", label: "TV Guide", icon: CalendarDays },
   { to: "/movies", label: "Movies", icon: Clapperboard },
   { to: "/series", label: "Series", icon: Layers },
+  { to: "/favorites", label: "Favorites", icon: Heart },
   { to: "/search", label: "Search", icon: Search },
   { to: "/downloads", label: "Downloads", icon: Download },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
-const MOBILE_NAV = NAV.filter((n) => ["/", "/live", "/movies", "/series", "/search"].includes(n.to));
+const MOBILE_NAV = [
+  ...NAV.filter((n) => ["/", "/live", "/movies", "/series", "/favorites"].includes(n.to)),
+  { to: "/more", label: "More", icon: LayoutGrid, end: false },
+];
 
 export function AppShell() {
   return (
@@ -51,7 +56,7 @@ export function AppShell() {
         <Outlet />
       </main>
 
-      <nav className="glass-strong fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] z-40 flex justify-around rounded-full px-2 py-1.5 md:hidden">
+      <nav className="glass-strong fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] z-40 flex justify-around gap-0.5 rounded-full px-1.5 py-1.5 md:hidden">
         {MOBILE_NAV.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
@@ -59,7 +64,7 @@ export function AppShell() {
             end={end}
             className={({ isActive }) =>
               cn(
-                "flex min-w-14 flex-col items-center gap-0.5 rounded-full px-3 py-1.5 text-[10px] font-medium transition-all duration-200 ease-spring active:scale-90",
+                "flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-full px-1 py-1.5 text-[10px] font-medium transition-all duration-200 ease-spring active:scale-90",
                 isActive ? "bg-accent/15 text-accent" : "text-ink-faint",
               )
             }

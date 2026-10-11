@@ -3,6 +3,7 @@ import { Clapperboard, Layers, Plus, RefreshCw, Tv } from "lucide-react";
 import { useMemo } from "react";
 import { useLibrary, useUnifiedLibrary } from "@/store/library";
 import { useSources } from "@/store/sources";
+import { useFilters } from "@/store/filters";
 import { usePlayer } from "@/store/player";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { GlassPanel } from "@/components/ui/GlassPanel";
@@ -15,6 +16,8 @@ export function HomePage() {
   const view = useUnifiedLibrary();
   const configs = useSources((s) => s.configs);
   const { recents, favorites, refreshAll, status } = useLibrary();
+  const hiddenItems = useFilters((s) => s.hiddenItems);
+  const hiddenUids = useMemo(() => new Set(hiddenItems), [hiddenItems]);
   const play = usePlayer((s) => s.play);
   const navigate = useNavigate();
 
@@ -24,7 +27,10 @@ export function HomePage() {
     return c;
   }, [view.items]);
 
-  const continueWatching = recents.map((r) => ({ r, item: view.byUid.get(r.uid) })).filter((x): x is { r: typeof recents[number]; item: MediaItem } => !!x.item);
+  const continueWatching = recents
+    .filter((r) => !r.finished && r.position && r.duration && r.position > 20)
+    .map((r) => ({ r, item: view.byUid.get(r.uid) ?? r.item }))
+    .filter((x): x is { r: (typeof recents)[number]; item: MediaItem } => !!x.item && !hiddenUids.has(x.item.uid));
   const favItems = favorites.map((u) => view.byUid.get(u)).filter((x): x is MediaItem => !!x);
   const latestMovies = useMemo(
     () => view.items.filter((i) => i.kind === "movie").sort((a, b) => (b.addedAt ?? 0) - (a.addedAt ?? 0)).slice(0, 12),
@@ -136,7 +142,7 @@ export function HomePage() {
         <Shelf title="Favorites">
           {favItems.slice(0, 20).map((item) => (
             <div key={item.uid} className="w-32 shrink-0 md:w-40">
-              <PosterCard item={item} onSelect={open} favorite />
+              <PosterCard item={item} onSelect={open} />
             </div>
           ))}
         </Shelf>
