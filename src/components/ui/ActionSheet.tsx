@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Download, EyeOff, Heart, Play, Tv } from "lucide-react";
+import { Download, EyeOff, Heart, Info, Play, Tv } from "lucide-react";
 import { useUi } from "@/store/ui";
 import { useLibrary } from "@/store/library";
 import { useFilters } from "@/store/filters";
@@ -38,6 +38,7 @@ export function ActionSheet() {
   const actions: { icon: React.ReactNode; label: string; run: () => void; danger?: boolean }[] = [];
   if (item) {
     actions.push({ icon: <Play size={16} />, label: item.kind === "series" ? "Open" : "Play", run: () => (item.kind === "series" ? navigate(`/series/${encodeURIComponent(item.uid)}`) : play(item)) });
+    if (item.kind === "movie") actions.push({ icon: <Info size={16} />, label: "Details & trailer", run: () => navigate(`/title/${encodeURIComponent(item.uid)}`) });
     actions.push({ icon: <Heart size={16} fill={fav ? "currentColor" : "none"} />, label: fav ? "Remove from Favorites" : "Add to Favorites", run: () => toggleFavorite(item) });
     if (isTauri() && item.kind === "movie")
       actions.push({

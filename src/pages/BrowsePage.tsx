@@ -45,6 +45,7 @@ export function BrowsePage({ kind }: { kind: "live" | "movie" | "series" }) {
 
   const select = (item: MediaItem) => {
     if (item.kind === "series") navigate(`/series/${encodeURIComponent(item.uid)}`);
+    else if (item.kind === "movie") navigate(`/title/${encodeURIComponent(item.uid)}`);
     else {
       void play(item, item.kind === "live" ? { queue: [], channels: items } : undefined);
     }

@@ -25,7 +25,8 @@ export function SearchPage() {
     return out;
   }, [q, view.items]);
 
-  const select = (i: MediaItem) => (i.kind === "series" ? navigate(`/series/${encodeURIComponent(i.uid)}`) : play(i));
+  const select = (i: MediaItem) =>
+    i.kind === "series" ? navigate(`/series/${encodeURIComponent(i.uid)}`) : i.kind === "movie" ? navigate(`/title/${encodeURIComponent(i.uid)}`) : play(i);
 
   return (
     <div className="animate-fade-up">

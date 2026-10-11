@@ -3,6 +3,9 @@ import { useSettings, type ThemePreference } from "@/store/settings";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Row, Section, Toggle } from "@/components/ui/SettingsRows";
 import { ContentSection } from "@/pages/settings/ContentSection";
+import { MetadataSection } from "@/pages/settings/MetadataSection";
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { isTauri } from "@/lib/platform";
 import { cn } from "@/lib/cn";
 
@@ -18,6 +21,10 @@ const ACCENTS = [
 export function SettingsPage() {
   const s = useSettings();
   const native = isTauri();
+  const location = useLocation();
+  useEffect(() => {
+    if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [location.hash]);
 
   return (
     <div className="mx-auto max-w-3xl animate-fade-up">
@@ -86,6 +93,8 @@ export function SettingsPage() {
           <Toggle label="Route streams through native relay" hint="Bypasses CORS and applies custom headers / User-Agent." value={s.routeStreamsThroughRelay} onChange={(v) => s.set({ routeStreamsThroughRelay: v })} />
         )}
       </Section>
+
+      <MetadataSection />
 
       <Section title="Captions">
         <Toggle label="Show subtitles by default" value={s.subtitlesEnabledByDefault} onChange={(v) => s.set({ subtitlesEnabledByDefault: v })} />

@@ -28,6 +28,10 @@ export interface SettingsState {
   downloadConcurrency: number;
   downloadOnCellular: boolean;
   webCorsProxy: string;
+  tmdbApiKey: string;
+  omdbApiKey: string;
+  metadataLanguage: string;
+  autoplayTrailers: boolean;
   hydrated: boolean;
   set: (patch: Partial<Omit<SettingsState, "set" | "hydrated">>) => void;
 }
@@ -50,6 +54,10 @@ export const useSettings = create<SettingsState>()(
       downloadConcurrency: 2,
       downloadOnCellular: false,
       webCorsProxy: "",
+      tmdbApiKey: "",
+      omdbApiKey: "",
+      metadataLanguage: "en-US",
+      autoplayTrailers: true,
       hydrated: false,
       set: (patch) => set(patch),
     }),

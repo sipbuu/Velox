@@ -45,7 +45,12 @@ export function HomePage() {
   }, [view.items, favorites]);
   const loading = Object.values(status).some((s) => s.state === "loading");
 
-  const open = (item: MediaItem) => (item.kind === "series" ? navigate(`/series/${encodeURIComponent(item.uid)}`) : play(item));
+  const open = (item: MediaItem) =>
+    item.kind === "series"
+      ? navigate(`/series/${encodeURIComponent(item.uid)}`)
+      : item.kind === "movie"
+        ? navigate(`/title/${encodeURIComponent(item.uid)}`)
+        : play(item);
 
   if (!configs.length) {
     return (

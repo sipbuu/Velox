@@ -14,6 +14,7 @@ import {
   type Series,
   type SeriesDetail,
 } from "@/types/media";
+import type { SourceDetail } from "@/lib/metadata";
 import type { LoadContext, MediaSource, SourceCapabilities, SourceFactory, SourceSecrets, XtreamConfig } from "./types";
 
 interface XtCategory {
@@ -82,6 +83,24 @@ interface XtSeriesInfo {
   info: XtSeries;
   seasons?: { season_number: number; name: string; cover?: string; cover_big?: string }[];
   episodes?: Record<string, XtEpisode[]> | XtEpisode[][];
+}
+
+interface XtVodInfo {
+  info?: {
+    movie_image?: string;
+    backdrop_path?: string[] | string;
+    youtube_trailer?: string;
+    plot?: string;
+    description?: string;
+    cast?: string;
+    actors?: string;
+    director?: string;
+    genre?: string;
+    releasedate?: string;
+    duration_secs?: number | string;
+    rating?: number | string;
+    tmdb_id?: number | string;
+  };
 }
 
 interface XtAuth {
@@ -314,6 +333,43 @@ export class XtreamSource implements MediaSource<XtreamConfig> {
       })
       .sort((a, b) => a.number - b.number);
     return { series, seasons };
+  }
+
+  async getItemDetail(item: MediaItem, ctx?: LoadContext): Promise<SourceDetail> {
+    const pickBackdrop = (b?: string[] | string) => (Array.isArray(b) ? b[0] : b) || undefined;
+    if (item.kind === "movie") {
+      const res = await this.api<XtVodInfo>("get_vod_info", { vod_id: item.id }, ctx);
+      const i = res.info ?? {};
+      return {
+        plot: i.plot || i.description,
+        cast: i.cast || i.actors,
+        director: i.director,
+        genres: i.genre?.split(/,\s*/).filter(Boolean),
+        rating: num(i.rating),
+        durationSec: num(i.duration_secs),
+        releaseDate: i.releasedate,
+        trailer: i.youtube_trailer,
+        backdrop: pickBackdrop(i.backdrop_path),
+        poster: i.movie_image,
+        tmdbId: i.tmdb_id ? String(i.tmdb_id) : undefined,
+      };
+    }
+    if (item.kind === "series") {
+      const res = await this.api<{ info?: XtSeries & { youtube_trailer?: string; director?: string; tmdb?: string | number } }>("get_series_info", { series_id: item.id }, ctx);
+      const i = res.info;
+      return {
+        plot: i?.plot,
+        cast: i?.cast,
+        director: i?.director,
+        genres: i?.genre?.split(/,\s*/).filter(Boolean),
+        rating: num(i?.rating),
+        releaseDate: i?.releaseDate,
+        trailer: i?.youtube_trailer,
+        backdrop: i?.backdrop_path?.[0],
+        tmdbId: i?.tmdb ? String(i.tmdb) : undefined,
+      };
+    }
+    return {};
   }
 
   async getEpg(channel: MediaItem, ctx?: LoadContext): Promise<EpgProgramme[]> {

@@ -38,6 +38,7 @@ pub fn run() {
     );
     builder
         .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_store::Builder::default().build())

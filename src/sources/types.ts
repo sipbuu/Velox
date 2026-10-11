@@ -8,6 +8,7 @@ import type {
   SeriesDetail,
   SourceKind,
 } from "@/types/media";
+import type { SourceDetail } from "@/lib/metadata";
 
 export interface SourceCapabilities {
   live: boolean;
@@ -77,6 +78,8 @@ export interface MediaSource<C extends SourceConfigBase = SourceConfigBase> {
   loadCategoryItems?(category: Category, ctx?: LoadContext): Promise<MediaItem[]>;
 
   getSeriesDetail?(seriesId: string, ctx?: LoadContext): Promise<SeriesDetail>;
+
+  getItemDetail?(item: MediaItem, ctx?: LoadContext): Promise<SourceDetail>;
 
   getEpg?(channel: MediaItem, ctx?: LoadContext): Promise<EpgProgramme[]>;
 

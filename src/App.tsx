@@ -12,6 +12,7 @@ import { DownloadsPage } from "@/pages/DownloadsPage";
 import { FavoritesPage } from "@/pages/FavoritesPage";
 import { MorePage } from "@/pages/MorePage";
 import { GuidePage } from "@/pages/GuidePage";
+import { TitlePage } from "@/pages/TitlePage";
 import { ActionSheet } from "@/components/ui/ActionSheet";
 import { PinPrompt } from "@/components/ui/PinPrompt";
 import { useThemeSync } from "@/hooks/useTheme";
@@ -49,6 +50,7 @@ export default function App() {
           <Route path="favorites" element={<FavoritesPage />} />
           <Route path="more" element={<MorePage />} />
           <Route path="guide" element={<GuidePage />} />
+          <Route path="title/:uid" element={<TitlePage />} />
           <Route path="sources" element={<SourcesPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>

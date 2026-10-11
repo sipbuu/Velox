@@ -40,7 +40,9 @@ export function FavoritesPage() {
   const select = (i: MediaItem) =>
     i.kind === "series"
       ? navigate(`/series/${encodeURIComponent(i.uid)}`)
-      : play(i, i.kind === "live" ? { channels: groups.live } : undefined);
+      : i.kind === "movie"
+        ? navigate(`/title/${encodeURIComponent(i.uid)}`)
+        : play(i, { channels: groups.live });
 
   if (!items.length) {
     return (
