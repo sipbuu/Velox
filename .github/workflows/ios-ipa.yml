@@ -1,0 +1,60 @@
+name: iOS unsigned IPA
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to attach the unsigned IPA to, e.g. v1.6.2"
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  TAG: ${{ inputs.tag }}
+
+jobs:
+  build:
+    name: Build UNSIGNED IPA
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: ios-unsigned
+      - run: npm ci
+      - name: Generate Xcode project
+        run: npx tauri ios init --ci
+      - name: Build unsigned IPA
+        run: npx tauri ios build --ci --no-sign --target aarch64
+      - name: Upload UNSIGNED IPA to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          IPA=$(find src-tauri/gen/apple/build -name '*.ipa' | head -1)
+          if [ -z "$IPA" ]; then echo "::error::No IPA produced"; find src-tauri/gen/apple/build -maxdepth 3; exit 1; fi
+          OUT="Velox_${TAG#v}_iOS_UNSIGNED.ipa"
+          cp "$IPA" "$OUT"
+          gh release upload "$TAG" "$OUT" --clobber
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: velox-ios-unsigned
+          path: Velox_*_iOS_UNSIGNED.ipa
+          if-no-files-found: ignore
