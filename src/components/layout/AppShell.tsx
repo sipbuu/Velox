@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { CalendarDays, Clapperboard, Download, Heart, Home, Layers, LayoutGrid, Search, Settings, Tv } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { useNativeTabBar } from "@/hooks/useNativeTabBar";
 
 const NAV = [
   { to: "/", label: "Home", icon: Home, end: true },
@@ -19,7 +20,19 @@ const MOBILE_NAV = [
   { to: "/more", label: "More", icon: LayoutGrid, end: false },
 ];
 
+const SF_SYMBOLS: Record<string, string> = {
+  "/": "house.fill",
+  "/live": "tv",
+  "/movies": "film",
+  "/series": "square.stack.fill",
+  "/favorites": "heart.fill",
+  "/more": "square.grid.2x2",
+};
+
+const NATIVE_TABS = MOBILE_NAV.map((n) => ({ to: n.to, title: n.label, symbol: SF_SYMBOLS[n.to] }));
+
 export function AppShell() {
+  const nativeTabs = useNativeTabBar(NATIVE_TABS);
   return (
     <div className="flex min-h-full">
       <div data-tauri-drag-region className="titlebar-drag fixed inset-x-0 top-0 z-50 hidden h-7" />
@@ -56,7 +69,7 @@ export function AppShell() {
         <Outlet />
       </main>
 
-      <nav className="glass-strong fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] z-40 flex justify-around gap-0.5 rounded-full px-1.5 py-1.5 md:hidden">
+      <nav className={cn("glass-strong fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] z-40 flex justify-around gap-0.5 rounded-full px-1.5 py-1.5 md:hidden", nativeTabs && "hidden")}>
         {MOBILE_NAV.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}

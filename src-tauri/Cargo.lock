@@ -4391,6 +4391,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "tauri-plugin-native-glass"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "tauri",
+ "tauri-plugin",
+]
+
+[[package]]
 name = "tauri-plugin-opener"
 version = "2.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5012,7 +5021,7 @@ dependencies = [
 
 [[package]]
 name = "velox"
-version = "1.4.0"
+version = "1.5.0"
 dependencies = [
  "axum",
  "base64 0.23.1",
@@ -5031,6 +5040,7 @@ dependencies = [
  "tauri-plugin-dialog",
  "tauri-plugin-fs",
  "tauri-plugin-log",
+ "tauri-plugin-native-glass",
  "tauri-plugin-opener",
  "tauri-plugin-os",
  "tauri-plugin-store",
