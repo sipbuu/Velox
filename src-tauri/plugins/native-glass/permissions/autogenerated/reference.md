@@ -1,12 +1,14 @@
 ## Default Permission
 
-Allows the app to drive the native tab bar
+Allows the app to drive the native tab bar and receive its tap events
 
 #### This default permission set includes the following:
 
 - `allow-tabs`
 - `allow-select`
 - `allow-visibility`
+- `allow-registerListener`
+- `allow-remove-listener`
 
 ## Permission Table
 
@@ -16,6 +18,58 @@ Allows the app to drive the native tab bar
 <th>Description</th>
 </tr>
 
+
+<tr>
+<td>
+
+`native-glass:allow-registerListener`
+
+</td>
+<td>
+
+Enables the registerListener command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`native-glass:deny-registerListener`
+
+</td>
+<td>
+
+Denies the registerListener command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`native-glass:allow-remove-listener`
+
+</td>
+<td>
+
+Enables the remove_listener command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`native-glass:deny-remove-listener`
+
+</td>
+<td>
+
+Denies the remove_listener command without any pre-configured scope.
+
+</td>
+</tr>
 
 <tr>
 <td>

@@ -21,16 +21,19 @@ export function useNativeTabBar(tabs: (NativeTab & { to: string })[]) {
     void nativeTabsSupported().then(async (ok) => {
       if (!ok || cancelled) return;
       try {
+        off = await onNativeTab((i) => tabs[i] && navigate(tabs[i].to));
         const material = await setNativeTabs(
           tabs.map(({ title, symbol }) => ({ title, symbol })),
           initialIndex.current,
         );
         if (cancelled) return;
-        off = await onNativeTab((i) => tabs[i] && navigate(tabs[i].to));
         setActive(true);
         if (material) document.documentElement.dataset.nativeTabs = material;
       } catch (e) {
-        console.warn("[velox] native tab bar unavailable", e);
+        console.warn("[velox] native tab bar unavailable, using web tab bar", e);
+        off?.();
+        off = undefined;
+        void setNativeTabsVisible(false);
       }
     });
     return () => {
