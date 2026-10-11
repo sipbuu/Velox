@@ -25,6 +25,7 @@ import { cn } from "@/lib/cn";
 import { isTauri } from "@/lib/platform";
 import { attachEngine, type EngineHandle } from "./engines";
 import { TrackMenu } from "./TrackMenu";
+import { CaptionOverlay } from "./CaptionOverlay";
 
 interface Props {
   request: PlaybackRequest;
@@ -40,6 +41,7 @@ type WebkitVideo = HTMLVideoElement & {
 export function VeloxPlayer({ request, onClose, onEnded }: Props) {
   const videoRef = useRef<WebkitVideo>(null);
   const shellRef = useRef<HTMLDivElement>(null);
+  const controlsRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<EngineHandle | null>(null);
   const hideTimer = useRef<number>(undefined);
 
@@ -134,7 +136,7 @@ export function VeloxPlayer({ request, onClose, onEnded }: Props) {
     const el = shellRef.current;
     if (!el) return;
     const c = settings.captionStyle;
-    el.style.setProperty("--v-cue-size", `${c.size}em`);
+    el.style.setProperty("--v-cue-scale", String(c.size));
     el.style.setProperty("--v-cue-color", c.color);
     el.style.setProperty("--v-cue-bg", c.background);
     el.style.setProperty(
@@ -334,6 +336,8 @@ export function VeloxPlayer({ request, onClose, onEnded }: Props) {
         </div>
       )}
 
+      <CaptionOverlay video={videoRef.current} controlsRef={controlsRef} controlsVisible={controlsVisible} version={tracksVersion} />
+
       {toast && (
         <div className="glass-dark absolute left-1/2 top-[calc(env(safe-area-inset-top)+4.5rem)] -translate-x-1/2 rounded-full px-4 py-2 text-sm animate-fade-up">
           {toast}
@@ -375,7 +379,7 @@ export function VeloxPlayer({ request, onClose, onEnded }: Props) {
           </button>
         </div>
 
-        <div className="bg-gradient-to-t from-black/80 to-transparent px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-12">
+        <div ref={controlsRef} className="bg-gradient-to-t from-black/80 to-transparent px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-12">
           <div className="glass-dark mx-auto max-w-5xl rounded-glass-lg px-4 py-3">
             <div className="flex items-center gap-3 text-xs tabular-nums text-white/80">
               <span className="w-14">{stream?.isLive ? (atLive ? "" : `-${formatDuration(behindLive)}`) : formatDuration(time)}</span>

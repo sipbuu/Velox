@@ -13,9 +13,32 @@ Velox isn't tied to one provider. You can mix any of these in a single library:
 
 New backends (Plex, Jellyfin, custom scrapers) are plugins: implement `MediaSource` and call `registerSourceFactory()`.
 
+## Screenshots
+
+> Captured from the web build against a mock Xtream server (artwork and channels are generated placeholders).
+
+| Home (dark) | Live TV | Player with captions |
+| --- | --- | --- |
+| ![Home](docs/screenshots/desktop-dark-home.jpg) | ![Live TV](docs/screenshots/desktop-dark-live.jpg) | ![Player](docs/screenshots/desktop-dark-player.jpg) |
+
+| Movies | Series detail | Settings |
+| --- | --- | --- |
+| ![Movies](docs/screenshots/desktop-dark-movies.jpg) | ![Series](docs/screenshots/desktop-dark-series-detail.jpg) | ![Settings](docs/screenshots/desktop-dark-settings.jpg) |
+
+| Home (light) | Movies (light) | Search |
+| --- | --- | --- |
+| ![Home light](docs/screenshots/desktop-light-home.jpg) | ![Movies light](docs/screenshots/desktop-light-movies.jpg) | ![Search](docs/screenshots/desktop-light-search.jpg) |
+
+**iPhone 16 Pro Max layout**
+
+| | | | | |
+| --- | --- | --- | --- | --- |
+| ![](docs/screenshots/iphone-dark-home.jpg) | ![](docs/screenshots/iphone-dark-live.jpg) | ![](docs/screenshots/iphone-light-movies.jpg) | ![](docs/screenshots/iphone-light-series-detail.jpg) | ![](docs/screenshots/iphone-dark-player.jpg) |
+
 ## Features
 
 - **Liquid Glass UI**: frosted translucent surfaces, inner highlights, hairline borders, bento layouts, spring hover/tap animations. Light, dark and system themes, accent colours and a reduce-transparency option.
+- **Native window materials**: on **macOS 26+** the window is backed by Apple's real Liquid Glass (`NSGlassEffectView`, via `window-vibrancy`). Older macOS versions get `NSVisualEffectView` vibrancy, and Windows 11 gets Mica. When a native material is active, the web UI turns translucent so the system glass shows through. On macOS the title bar is a transparent overlay.
 - **Artwork fallbacks**: logos and posters from Xtream/M3U metadata. Broken, 404 or 1×1 images get replaced by a generated gradient SVG with the channel's initials.
 - **Playback**: hls.js, mpegts.js, or native HTML5/AVPlayer (hardware-accelerated) is picked per platform. On iOS and Safari, HLS goes through the native pipeline so AirPlay and PiP work.
 - **Live time-shift**
@@ -117,4 +140,5 @@ For the web deploy, set **Settings → Pages → Source** to *GitHub Actions*.
 - **Encrypted HLS** (AES-128/SAMPLE-AES) works with native time-shift but not with the Software Buffer Cache.
 - **iCloud Keychain sync**: credentials go to the device keychain. Syncing them across devices needs the `kSecAttrSynchronizable` attribute. That attribute isn't set by `keyring`, so it's planned as a small Swift plugin.
 - **iOS background downloads** continue while the app is in the foreground or briefly backgrounded. Fully suspended transfers need a `URLSession` background-configuration plugin, which is also planned.
+- **Native Liquid Glass inside the UI**: the in-app panels, cards and tab bar are CSS (`backdrop-filter`) recreations, because a WebView can't host native `NSGlassEffectView`/`UIGlassEffect` per element. Native glass covers the window background on macOS. On iOS, the system video player (fullscreen / AirPlay / PiP) uses Apple's native controls. A native iOS backdrop via a Swift plugin is a possible next step.
 - **Web build**: Xtream and M3U servers often don't send CORS headers. Configure a CORS proxy in Settings, or use the native apps.

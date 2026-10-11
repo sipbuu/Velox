@@ -80,12 +80,19 @@
     outline-offset: 2px;
   }
 
-  video::cue {
+  video::-webkit-media-text-track-display,
+  video::-webkit-media-text-track-container {
+    display: none;
+  }
+
+  .velox-cue {
     font-family: var(--v-cue-font, inherit);
-    font-size: var(--v-cue-size, 1em);
+    font-size: calc(clamp(1rem, 2.4vw, 1.75rem) * var(--v-cue-scale, 1));
     color: var(--v-cue-color, #fff);
     background: var(--v-cue-bg, rgb(0 0 0 / 0.6));
-    text-shadow: var(--v-cue-shadow, 0 1px 2px rgb(0 0 0 / 0.8));
+    text-shadow: 0 1px 3px rgb(0 0 0 / 0.9);
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
   }
 
   @media (prefers-reduced-motion: reduce) {

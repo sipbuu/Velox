@@ -30,6 +30,13 @@ export function HomePage() {
     () => view.items.filter((i) => i.kind === "movie").sort((a, b) => (b.addedAt ?? 0) - (a.addedAt ?? 0)).slice(0, 12),
     [view.items],
   );
+  const liveSample = useMemo(() => {
+    const fav = new Set(favorites);
+    return view.items
+      .filter((i) => i.kind === "live")
+      .sort((a, b) => Number(fav.has(b.uid)) - Number(fav.has(a.uid)))
+      .slice(0, 8);
+  }, [view.items, favorites]);
   const loading = Object.values(status).some((s) => s.state === "loading");
 
   const open = (item: MediaItem) => (item.kind === "series" ? navigate(`/series/${encodeURIComponent(item.uid)}`) : play(item));
@@ -53,7 +60,10 @@ export function HomePage() {
     <div className="animate-fade-up">
       <PageHeader
         title="Home"
-        subtitle={`${configs.filter((c) => c.enabled).length} active sources`}
+        subtitle={(() => {
+          const n = configs.filter((c) => c.enabled).length;
+          return `${n} active source${n === 1 ? "" : "s"}`;
+        })()}
         actions={
           <button className="btn-glass" onClick={refreshAll} disabled={loading}>
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} /> Refresh
@@ -62,7 +72,27 @@ export function HomePage() {
       />
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4 md:grid-rows-2">
-        <BentoTile to="/live" className="col-span-2 row-span-2 min-h-[12rem] md:min-h-[18rem]" icon={<Tv size={28} />} label="Live TV" count={counts.live} gradient="from-[#5b8cff] to-[#7a5cff]" />
+        <BentoTile to="/live" className="col-span-2 row-span-2 min-h-[12rem] md:min-h-[18rem]" icon={<Tv size={28} />} label="Live TV" count={counts.live} gradient="from-[#5b8cff] to-[#7a5cff]">
+          {liveSample.length > 0 && (
+            <div className="grid grid-cols-4 gap-2 sm:gap-3">
+              {liveSample.map((ch) => (
+                <span
+                  key={ch.uid}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Play ${ch.title}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    void play(ch);
+                  }}
+                  className="glass-pill aspect-video overflow-hidden !rounded-xl !bg-white/85 transition-transform duration-200 ease-spring hover:scale-105 active:scale-95"
+                >
+                  <Artwork src={ch.artwork.logo} title={ch.title} variant="logo" fit="contain" className="h-full w-full" />
+                </span>
+              ))}
+            </div>
+          )}
+        </BentoTile>
         <BentoTile to="/movies" icon={<Clapperboard size={22} />} label="Movies" count={counts.movie} gradient="from-[#ff5ca8] to-[#ff8a5c]" />
         <BentoTile to="/series" icon={<Layers size={22} />} label="Series" count={counts.series} gradient="from-[#22c3a6] to-[#2a8cff]" />
         <GlassPanel className="col-span-2 flex items-center gap-4 p-4">
@@ -125,12 +155,13 @@ export function HomePage() {
   );
 }
 
-function BentoTile({ to, icon, label, count, gradient, className = "" }: { to: string; icon: React.ReactNode; label: string; count: number; gradient: string; className?: string }) {
+function BentoTile({ to, icon, label, count, gradient, className = "", children }: { to: string; icon: React.ReactNode; label: string; count: number; gradient: string; className?: string; children?: React.ReactNode }) {
   return (
     <Link to={to} className={`poster-card group relative flex flex-col justify-between overflow-hidden bg-gradient-to-br p-5 text-white ${gradient} ${className}`}>
       <div className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-glass-sheen" />
       <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/15 blur-2xl transition-transform duration-500 group-hover:scale-125" />
       <div className="glass-pill grid h-11 w-11 place-items-center !bg-white/20 text-white">{icon}</div>
+      {children && <div className="relative my-4">{children}</div>}
       <div>
         <p className="text-3xl font-bold tabular-nums tracking-tight">{count.toLocaleString()}</p>
         <p className="text-sm font-medium text-white/80">{label}</p>
