@@ -157,8 +157,6 @@ export default {
         },
         ".tap-highlight-none": { WebkitTapHighlightColor: "transparent" },
         ".text-balance": { textWrap: "balance" },
-        ".drag-region": { "-webkit-app-region": "drag" },
-        ".no-drag": { "-webkit-app-region": "no-drag" },
       });
     }),
   ],

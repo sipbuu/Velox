@@ -17,9 +17,10 @@ const MOBILE_NAV = NAV.filter((n) => ["/", "/live", "/movies", "/series", "/sear
 export function AppShell() {
   return (
     <div className="flex min-h-full">
+      <div data-tauri-drag-region className="titlebar-drag fixed inset-x-0 top-0 z-50 hidden h-7" />
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 p-3 md:block">
-        <nav className="glass flex h-full flex-col gap-1 rounded-glass-xl p-3 pt-[calc(env(safe-area-inset-top)+1rem)]">
-          <div className="drag-region mb-4 flex items-center gap-2.5 px-2">
+        <nav className="sidebar-nav glass flex h-full flex-col gap-1 rounded-glass-xl p-3 pt-[calc(env(safe-area-inset-top)+1rem)]">
+          <div data-tauri-drag-region className="mb-4 flex items-center gap-2.5 px-2">
             <img src="./velox.svg" alt="" className="h-8 w-8 rounded-[10px] shadow-glass-sm" />
             <span className="text-lg font-bold tracking-tight">Velox</span>
           </div>
@@ -30,7 +31,7 @@ export function AppShell() {
               end={end}
               className={({ isActive }) =>
                 cn(
-                  "no-drag flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 ease-spring",
+                  "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 ease-spring",
                   isActive ? "bg-accent text-accent-contrast shadow-accent-glow" : "text-ink-muted hover:bg-glass-strong/60 hover:text-ink",
                 )
               }
@@ -40,7 +41,7 @@ export function AppShell() {
             </NavLink>
           ))}
           <div className="flex-1" />
-          <NavLink to="/sources" className="btn-glass no-drag justify-start rounded-xl text-ink-muted">
+          <NavLink to="/sources" className="btn-glass justify-start rounded-xl text-ink-muted">
             Sources & Accounts
           </NavLink>
         </nav>

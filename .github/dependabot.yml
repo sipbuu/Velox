@@ -4,6 +4,9 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: typescript
+        versions: [">=7"]
     groups:
       npm-minor:
         update-types: [minor, patch]

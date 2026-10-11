@@ -10,6 +10,7 @@ import { SourcesPage } from "@/pages/SourcesPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { DownloadsPage } from "@/pages/DownloadsPage";
 import { useThemeSync } from "@/hooks/useTheme";
+import { useNativeChrome } from "@/hooks/useNativeChrome";
 import { useDownloads } from "@/store/downloads";
 import { useSettings } from "@/store/settings";
 import { invoke } from "@/lib/ipc";
@@ -17,6 +18,7 @@ import { isTauri } from "@/lib/platform";
 
 export default function App() {
   useThemeSync();
+  useNativeChrome();
   const initDownloads = useDownloads((s) => s.init);
   const concurrency = useSettings((s) => s.downloadConcurrency);
 

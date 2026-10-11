@@ -2,6 +2,7 @@ use serde::Serialize;
 use tauri::State;
 
 use crate::error::Result;
+use crate::native_glass::NativeMaterial;
 use crate::timeshift::StartRequest;
 use crate::AppState;
 
@@ -34,4 +35,9 @@ pub async fn timeshift_start(state: State<'_, AppState>, request: StartRequest) 
 pub async fn timeshift_stop(state: State<'_, AppState>, id: String) -> Result<()> {
     state.timeshift.stop(&id);
     Ok(())
+}
+
+#[tauri::command]
+pub fn native_material(state: State<'_, AppState>) -> NativeMaterial {
+    state.material
 }

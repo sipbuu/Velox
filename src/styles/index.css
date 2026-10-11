@@ -147,3 +147,32 @@
   -webkit-backdrop-filter: none;
   background-color: rgb(var(--v-surface));
 }
+
+[data-platform="macos"] .titlebar-drag {
+  display: block;
+}
+
+[data-platform="macos"] .sidebar-nav {
+  padding-top: 2.75rem;
+}
+
+[data-platform="macos"] main {
+  padding-top: max(2.25rem, env(safe-area-inset-top));
+}
+
+:root[data-material]:not([data-reduce-transparency]) body {
+  background-color: transparent;
+}
+
+:root[data-material]:not([data-reduce-transparency]) body::before {
+  opacity: 0.45;
+}
+
+:root[data-material="liquid-glass"]:not([data-reduce-transparency]) {
+  --v-glass-alpha: 0.32;
+  --v-glass-strong-alpha: 0.55;
+}
+
+:root[data-material="liquid-glass"][data-theme="dark"]:not([data-reduce-transparency]) {
+  --v-glass-alpha: 0.28;
+}

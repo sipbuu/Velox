@@ -1,6 +1,7 @@
 mod commands;
 mod downloads;
 mod error;
+mod native_glass;
 mod server;
 mod timeshift;
 mod util;
@@ -13,6 +14,7 @@ pub struct AppState {
     pub server: server::ServerInfo,
     pub timeshift: timeshift::Manager,
     pub downloads: downloads::Manager,
+    pub material: native_glass::NativeMaterial,
 }
 
 fn http_client() -> reqwest::Client {
@@ -52,7 +54,12 @@ pub fn run() {
 
             let dl = downloads::Manager::load(handle.clone(), http.clone())?;
 
-            app.manage(AppState { http, server: info, timeshift: ts, downloads: dl });
+            let material = app
+                .get_webview_window("main")
+                .map(|w| native_glass::apply(&w))
+                .unwrap_or(native_glass::NativeMaterial::None);
+
+            app.manage(AppState { http, server: info, timeshift: ts, downloads: dl, material });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -63,6 +70,7 @@ pub fn run() {
             commands::local::local_scan,
             commands::epg::epg_fetch_xmltv,
             commands::media::media_server_info,
+            commands::media::native_material,
             commands::media::timeshift_start,
             commands::media::timeshift_stop,
             commands::downloads::downloads_list,

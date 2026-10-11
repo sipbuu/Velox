@@ -2,8 +2,9 @@ use std::collections::HashSet;
 use std::time::Duration;
 
 use chrono::{DateTime, NaiveDateTime};
-use quick_xml::events::{BytesStart, Event};
-use quick_xml::Reader;
+use quick_xml::escape::resolve_xml_entity;
+use quick_xml::events::{BytesRef, BytesStart, Event};
+use quick_xml::{Reader, XmlVersion};
 use serde::Serialize;
 use tauri::State;
 
@@ -30,63 +31,73 @@ pub fn parse_xmltv_time(s: &str) -> Option<i64> {
     NaiveDateTime::parse_from_str(&digits, "%Y%m%d%H%M%S").ok().map(|n| n.and_utc().timestamp_millis())
 }
 
-fn attr(e: &BytesStart, name: &[u8]) -> Option<String> {
+fn attr(e: &BytesStart, name: &str) -> Option<String> {
     e.attributes()
         .flatten()
         .find(|a| a.key.as_ref() == name)
-        .and_then(|a| a.unescape_value().ok().map(|v| v.into_owned()))
+        .and_then(|a| a.normalized_value(XmlVersion::Implicit1_0).ok().map(|v| v.into_owned()))
+}
+
+fn resolve_ref(r: &BytesRef) -> Option<String> {
+    if r.is_char_ref() {
+        return r.resolve_char_ref().ok().flatten().map(String::from);
+    }
+    let name = r.borrow().into_inner();
+    resolve_xml_entity(&name).map(str::to_string).or_else(|| Some(format!("&{name};")))
 }
 
 pub fn parse_xmltv(xml: &[u8], channels: Option<&HashSet<String>>, from: i64, to: i64) -> Vec<Programme> {
     let mut reader = Reader::from_reader(xml);
-    reader.config_mut().trim_text(true);
     let mut buf = Vec::new();
     let mut out = Vec::new();
     let mut current: Option<Programme> = None;
     let mut field: Option<&'static str> = None;
+    let mut text = String::new();
 
     loop {
         match reader.read_event_into(&mut buf) {
             Ok(Event::Start(e)) => match e.name().as_ref() {
-                b"programme" => {
-                    let channel_id = attr(&e, b"channel").unwrap_or_default();
-                    let start = attr(&e, b"start").and_then(|s| parse_xmltv_time(&s)).unwrap_or(0);
-                    let end = attr(&e, b"stop").and_then(|s| parse_xmltv_time(&s)).unwrap_or(start);
+                "programme" => {
+                    let channel_id = attr(&e, "channel").unwrap_or_default();
+                    let start = attr(&e, "start").and_then(|s| parse_xmltv_time(&s)).unwrap_or(0);
+                    let end = attr(&e, "stop").and_then(|s| parse_xmltv_time(&s)).unwrap_or(start);
                     let wanted =
                         channels.map(|c| c.contains(&channel_id)).unwrap_or(true) && end >= from && start <= to;
                     current = wanted.then(|| Programme { channel_id, start, end, ..Default::default() });
                 }
-                b"title" if current.is_some() => field = Some("title"),
-                b"desc" if current.is_some() => field = Some("desc"),
+                "title" if current.is_some() => {
+                    field = Some("title");
+                    text.clear();
+                }
+                "desc" if current.is_some() => {
+                    field = Some("desc");
+                    text.clear();
+                }
                 _ => {}
             },
-            Ok(Event::Text(t)) => {
-                if let (Some(p), Some(f)) = (current.as_mut(), field) {
-                    let text = t.unescape().map(|c| c.into_owned()).unwrap_or_default();
-                    match f {
-                        "title" if p.title.is_empty() => p.title = text,
-                        "desc" if p.description.is_none() => p.description = Some(text),
-                        _ => {}
-                    }
-                }
-            }
-            Ok(Event::CData(t)) => {
-                if let (Some(p), Some(f)) = (current.as_mut(), field) {
-                    let text = String::from_utf8_lossy(&t).into_owned();
-                    match f {
-                        "title" if p.title.is_empty() => p.title = text,
-                        "desc" if p.description.is_none() => p.description = Some(text),
-                        _ => {}
-                    }
+            Ok(Event::Text(t)) if field.is_some() => text.push_str(&t.xml_content(XmlVersion::Implicit1_0)),
+            Ok(Event::CData(t)) if field.is_some() => text.push_str(&t.xml_content(XmlVersion::Implicit1_0)),
+            Ok(Event::GeneralRef(r)) if field.is_some() => {
+                if let Some(v) = resolve_ref(&r) {
+                    text.push_str(&v);
                 }
             }
             Ok(Event::End(e)) => match e.name().as_ref() {
-                b"programme" => {
+                "programme" => {
                     if let Some(p) = current.take() {
                         out.push(p);
                     }
                 }
-                b"title" | b"desc" => field = None,
+                "title" | "desc" => {
+                    if let (Some(p), Some(f)) = (current.as_mut(), field.take()) {
+                        let value = text.trim().to_string();
+                        match f {
+                            "title" if p.title.is_empty() => p.title = value,
+                            "desc" if p.description.is_none() => p.description = Some(value),
+                            _ => {}
+                        }
+                    }
+                }
                 _ => {}
             },
             Ok(Event::Eof) => break,
