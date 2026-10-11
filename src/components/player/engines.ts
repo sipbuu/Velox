@@ -25,6 +25,7 @@ export interface EngineOptions {
   isLive: boolean;
   preferNativeHls: boolean;
   memoryBufferSec: number;
+  forceHlsJs?: boolean;
   onFatalError: (message: string) => void;
   onTracksChanged: () => void;
 }
@@ -138,6 +139,10 @@ export async function attachEngine(video: HTMLVideoElement, opts: EngineOptions)
 
   if (container === "hls" || (container === "unknown" && /m3u8/i.test(url))) {
     const { default: HlsCtor } = await import("hls.js");
+    if (opts.forceHlsJs) {
+      if (!HlsCtor.isSupported()) throw new Error("hls.js isn't supported on this device");
+      return hlsHandle(video, opts);
+    }
     const wantNative = nativeCanPlayHls(video) && (isIOSLike() || (opts.preferNativeHls && isAppleWebKit()));
     if (!wantNative && HlsCtor.isSupported()) return hlsHandle(video, opts);
     if (nativeCanPlayHls(video)) return nativeHandle(video, url);

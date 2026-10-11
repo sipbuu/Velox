@@ -31,7 +31,7 @@ import { useEpg } from "@/hooks/useEpgNow";
 import { subtitleBlobUrl } from "@/lib/subtitles";
 import { formatDuration, formatTime } from "@/lib/format";
 import { cn } from "@/lib/cn";
-import { isTauri } from "@/lib/platform";
+import { isAppleWebKit, isIOSLike, isTauri } from "@/lib/platform";
 import { attachEngine, type EngineHandle } from "./engines";
 import { TrackMenu } from "./TrackMenu";
 import { CaptionOverlay } from "./CaptionOverlay";
@@ -67,7 +67,10 @@ export function VeloxPlayer() {
   const settings = useSettings();
   const markWatched = useLibrary((s) => s.markWatched);
   const enqueueDownload = useDownloads((s) => s.enqueue);
-  const { stream, error: resolveError } = useResolvedStream(request);
+  const { candidates, error: resolveError } = useResolvedStream(request);
+  const [attempt, setAttempt] = useState(0);
+  const [failures, setFailures] = useState<{ label: string; reason: string }[]>([]);
+  const stream = candidates[attempt] ?? null;
   const { current: nowOnAir } = useEpg(request.isLive ? request.item : undefined);
 
   const [playing, setPlaying] = useState(false);
@@ -89,6 +92,23 @@ export function VeloxPlayer() {
 
   const bumpTracks = useCallback(() => setTracksVersion((v) => v + 1), []);
 
+  useEffect(() => {
+    setAttempt(0);
+    setFailures([]);
+    setError(null);
+  }, [candidates]);
+
+  const attemptRef = useRef({ attempt, candidates, stream });
+  attemptRef.current = { attempt, candidates, stream };
+  const failCurrent = useCallback((reason: string) => {
+    const { attempt: a, candidates: c, stream: st } = attemptRef.current;
+    if (!st) return;
+    console.warn(`[velox] playback path failed: ${st.label}: ${reason}`);
+    setFailures((f) => (f.some((x) => x.label === st.label) ? f : [...f, { label: st.label, reason }]));
+    if (a + 1 < c.length) setAttempt(a + 1);
+    else setError(reason);
+  }, []);
+
   const flash = useCallback((t: Toast | string, ms = 3000) => {
     setToast(typeof t === "string" ? { msg: t } : t);
     window.clearTimeout(toastTimer.current);
@@ -99,6 +119,8 @@ export function VeloxPlayer() {
     const video = videoRef.current;
     if (!video || !stream) return;
     let disposed = false;
+    let playBlocked = false;
+    let watchdog: number | undefined;
     setError(null);
     setBuffering(true);
     setUpNext(false);
@@ -109,7 +131,8 @@ export function VeloxPlayer() {
       isLive: stream.isLive,
       preferNativeHls: settings.preferNativeHls,
       memoryBufferSec: stream.timeshift === "memory" || stream.timeshift === "software" ? settings.timeshiftWindowSec : 0,
-      onFatalError: (m) => setError(m),
+      forceHlsJs: stream.engine === "hlsjs",
+      onFatalError: (m) => failCurrent(m),
       onTracksChanged: bumpTracks,
     })
       .then((engine) => {
@@ -117,16 +140,23 @@ export function VeloxPlayer() {
         engineRef.current = engine;
         if (request.startAt) video.currentTime = request.startAt;
         video.playbackRate = stream.isLive ? 1 : speedRef.current;
-        video.play().catch(() => setPlaying(false));
+        video.play().catch(() => {
+          playBlocked = true;
+          setPlaying(false);
+        });
+        watchdog = window.setTimeout(() => {
+          if (!disposed && !playBlocked && video.readyState < 2 && !video.error) failCurrent("Timed out waiting for the stream to start");
+        }, 20_000);
       })
-      .catch((e: Error) => setError(e.message));
+      .catch((e: Error) => failCurrent(e.message));
 
     return () => {
       disposed = true;
+      window.clearTimeout(watchdog);
       engineRef.current?.destroy();
       engineRef.current = null;
     };
-  }, [stream, settings.preferNativeHls, settings.timeshiftWindowSec, request.startAt, bumpTracks]);
+  }, [stream, settings.preferNativeHls, settings.timeshiftWindowSec, request.startAt, bumpTracks, failCurrent]);
 
   useEffect(() => {
     if (resumedFrom)
@@ -227,7 +257,12 @@ export function VeloxPlayer() {
       },
       ratechange: () => setSpeed(video.playbackRate),
       ended: onEnded,
-      error: () => setError(video.error?.message || "This format can't be played on this device."),
+      error: () => {
+        if (!video.currentSrc && !video.getAttribute("src")) return;
+        const code = video.error?.code ?? 0;
+        const kind = ["", "aborted", "network error", "decode error", "format not supported"][code] ?? "unknown error";
+        failCurrent(`Media error ${code} (${kind})${video.error?.message ? `: ${video.error.message}` : ""}`);
+      },
     };
     Object.entries(on).forEach(([k, fn]) => video.addEventListener(k, fn));
     video.textTracks.addEventListener?.("addtrack", bumpTracks);
@@ -235,7 +270,7 @@ export function VeloxPlayer() {
       Object.entries(on).forEach(([k, fn]) => video.removeEventListener(k, fn));
       video.textTracks.removeEventListener?.("addtrack", bumpTracks);
     };
-  }, [stream, onEnded, bumpTracks]);
+  }, [stream, onEnded, bumpTracks, failCurrent]);
 
   useEffect(() => {
     if (!sleep || !("endsAt" in sleep)) return;
@@ -427,7 +462,6 @@ export function VeloxPlayer() {
         className="absolute inset-0 h-full w-full object-contain"
         playsInline
         autoPlay
-        crossOrigin="anonymous"
         x-webkit-airplay="allow"
         poster={request.artwork?.backdrop}
         onClick={mini ? expand : togglePlay}
@@ -441,13 +475,57 @@ export function VeloxPlayer() {
       )}
 
       {shownError && (
-        <div className="absolute inset-0 grid place-items-center p-4">
-          <div className={cn("glass-dark rounded-glass-lg text-center", mini ? "p-3" : "max-w-md p-6")}>
+        <div className="absolute inset-0 z-40 grid place-items-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm">
+          <div className={cn("glass-dark rounded-glass-lg text-center", mini ? "p-3" : "w-full max-w-md p-6")}>
             <p className={cn("font-semibold", mini ? "text-sm" : "text-lg")}>Playback failed</p>
-            {!mini && <p className="mt-2 text-sm text-white/70">{shownError}</p>}
-            <button className="btn mt-3 bg-white/15 hover:bg-white/25" onClick={stop}>
-              Close
-            </button>
+            {!mini && (
+              <>
+                <p className="mt-2 text-sm text-white/70">{shownError}</p>
+                {request.container === "mkv" && (isIOSLike() || isAppleWebKit()) && (
+                  <p className="mt-2 rounded-lg bg-warning/15 px-3 py-2 text-xs text-warning">
+                    This title is an MKV file, which Apple devices can't play in-app. Try another version of the title from your provider, or watch it on Windows.
+                  </p>
+                )}
+                {failures.length > 0 && (
+                  <ul className="mt-3 space-y-1 text-left text-xs text-white/60">
+                    {failures.map((f) => (
+                      <li key={f.label} className="rounded-lg bg-white/5 px-2.5 py-1.5">
+                        <span className="font-semibold text-white/80">{f.label}</span>: {f.reason}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            )}
+            <div className="mt-3 flex justify-center gap-2">
+              {!mini && (
+                <button
+                  className="btn bg-white/15 hover:bg-white/25"
+                  onClick={() => {
+                    const lines = [
+                      `Velox ${__APP_VERSION__} · ${navigator.userAgent}`,
+                      `Title: ${request.title}`,
+                      `Container: ${request.container} · live: ${request.isLive}`,
+                      `Source URL host: ${(() => {
+                        try {
+                          return new URL(request.url).host;
+                        } catch {
+                          return "local";
+                        }
+                      })()}`,
+                      ...failures.map((f) => `- ${f.label}: ${f.reason}`),
+                      `Final: ${shownError}`,
+                    ];
+                    void navigator.clipboard?.writeText(lines.join("\n")).then(() => flash("Copied error details"));
+                  }}
+                >
+                  Copy details
+                </button>
+              )}
+              <button className="btn bg-white/15 hover:bg-white/25" onClick={stop}>
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -471,7 +549,7 @@ export function VeloxPlayer() {
             </div>
           )}
 
-          <div className={cn("absolute inset-0 flex flex-col justify-between transition-opacity duration-300", controlsVisible ? "opacity-100" : "pointer-events-none opacity-0")}>
+          <div className={cn("absolute inset-0 flex flex-col justify-between transition-opacity duration-300", controlsVisible && !shownError ? "opacity-100" : "pointer-events-none opacity-0")}>
             <div className="flex items-center gap-3 bg-gradient-to-b from-black/70 to-transparent px-4 pb-10 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
               <button aria-label="Minimize player" className="glass-dark grid h-10 w-10 place-items-center rounded-full" onClick={goMini}>
                 <ChevronDown size={22} />
