@@ -59,6 +59,15 @@ jobs:
               name: `Velox ${tag}`,
               draft: true,
               generate_release_notes: true,
+              body: [
+                "## Downloads",
+                "- **Windows**: `*_x64-setup.exe` or `*.msi` (not code-signed yet: SmartScreen → More info → Run anyway)",
+                "- **macOS**: `*.dmg` (universal; unsigned unless Apple secrets are configured: right-click → Open)",
+                "- **Linux**: `*.AppImage`, `*.deb`, `*.rpm`",
+                "- **iOS**: `*_iOS_UNSIGNED.ipa` is **UNSIGNED**. It will not install directly. Sideload it with AltStore or Sideloadly using your Apple ID (free accounts expire after 7 days).",
+                "- **Web**: `*_web.zip` (static SPA)",
+                "",
+              ].join("\n"),
             });
             return String(data.id);
 
@@ -125,7 +134,48 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
 
-  ios:
+  ios-unsigned:
+    name: iOS (unsigned IPA for sideloading)
+    needs: create-release
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: ios-unsigned
+      - run: npm ci
+      - name: Generate Xcode project
+        run: npx tauri ios init --ci
+      - name: Build unsigned IPA
+        run: npx tauri ios build --ci --no-sign --target aarch64
+      - name: Upload unsigned IPA to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          IPA=$(find src-tauri/gen/apple/build -name '*.ipa' | head -1)
+          if [ -z "$IPA" ]; then echo "::error::No IPA produced"; find src-tauri/gen/apple/build -maxdepth 3; exit 1; fi
+          OUT="Velox_${TAG#v}_iOS_UNSIGNED.ipa"
+          cp "$IPA" "$OUT"
+          gh release upload "$TAG" "$OUT" --clobber
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: velox-ios-unsigned
+          path: Velox_*_iOS_UNSIGNED.ipa
+          if-no-files-found: ignore
+
+  ios-signed:
+    name: iOS (signed IPA, needs Apple secrets)
     needs: create-release
     runs-on: macos-latest
     env:

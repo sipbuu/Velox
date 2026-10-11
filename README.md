@@ -148,6 +148,16 @@ Optional repository secrets:
 
 For the web deploy, set **Settings → Pages → Source** to *GitHub Actions*.
 
+### Installing on iPhone (unsigned IPA)
+
+Every release includes **`Velox_<version>_iOS_UNSIGNED.ipa`**. It is **not signed**, so iOS won't install it directly. Sideload it instead:
+
+1. Install [AltStore](https://altstore.io) or [Sideloadly](https://sideloadly.io) on your computer.
+2. Connect your iPhone and drop the `.ipa` into the tool. It re-signs the app with your Apple ID.
+3. On the phone, trust your developer profile in **Settings → General → VPN & Device Management**, and enable **Developer Mode** if iOS asks.
+
+With a free Apple ID the app expires after **7 days**; re-sign it (AltStore can refresh automatically). With a paid developer account, add the `IOS_*` secrets above to get a properly signed IPA from the `ios-signed` job instead.
+
 ## Platform notes and known limitations
 
 - **MKV** playback depends on the WebView. Chromium-based WebView2 (Windows) handles most MKV/H.264 files. WKWebView (macOS/iOS) and WebKitGTK generally can't play MKV, so use MP4/HLS there.
