@@ -95,7 +95,7 @@ interface XtShortEpg {
     description?: string;
     start_timestamp: string | number;
     stop_timestamp: string | number;
-    has_archive?: number;
+    has_archive?: number | string;
     channel_id?: string;
   }[];
 }
@@ -318,15 +318,21 @@ export class XtreamSource implements MediaSource<XtreamConfig> {
 
   async getEpg(channel: MediaItem, ctx?: LoadContext): Promise<EpgProgramme[]> {
     if (channel.kind !== "live") return [];
-    const res = await this.api<XtShortEpg>("get_short_epg", { stream_id: channel.id, limit: 12 }, ctx);
-    return (res.epg_listings ?? []).map((p) => ({
-      channelId: channel.id,
-      title: b64(p.title),
-      description: b64(p.description),
-      start: (num(p.start_timestamp) ?? 0) * 1000,
-      end: (num(p.stop_timestamp) ?? 0) * 1000,
-      hasArchive: p.has_archive === 1,
-    }));
+    const map = (res: XtShortEpg) =>
+      (res.epg_listings ?? [])
+        .map((p) => ({
+          channelId: channel.id,
+          title: b64(p.title),
+          description: b64(p.description),
+          start: (num(p.start_timestamp) ?? 0) * 1000,
+          end: (num(p.stop_timestamp) ?? 0) * 1000,
+          hasArchive: Number(p.has_archive) === 1,
+        }))
+        .filter((p) => p.end > p.start)
+        .sort((a, b) => a.start - b.start);
+    const full = await this.api<XtShortEpg>("get_simple_data_table", { stream_id: channel.id }, ctx).then(map).catch(() => []);
+    if (full.length) return full;
+    return map(await this.api<XtShortEpg>("get_short_epg", { stream_id: channel.id, limit: 24 }, ctx));
   }
 
   async search(query: string): Promise<MediaItem[]> {

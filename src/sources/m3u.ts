@@ -12,6 +12,7 @@ import {
   type PlaybackRequest,
 } from "@/types/media";
 import { parseM3U, type M3UEntry } from "./m3uParser";
+import { buildCatchupUrl } from "@/lib/catchup";
 import type { LoadContext, M3UConfig, MediaSource, SourceCapabilities, SourceFactory, SourceSecrets } from "./types";
 
 const playlistTextCache = new Map<string, string>();
@@ -26,7 +27,7 @@ export class M3USource implements MediaSource<M3UConfig> {
     movies: true,
     series: true,
     epg: true,
-    catchup: false,
+    catchup: true,
     search: true,
     downloads: true,
   };
@@ -72,7 +73,16 @@ export class M3USource implements MediaSource<M3UConfig> {
         extra: { url: e.url, headers: e.headers, group: e.group },
       };
       if (kind === "live") {
-        items.push({ ...base, kind, artwork: { logo: e.logo }, epgChannelId: e.tvgId, number: idx + 1 });
+        items.push({
+          ...base,
+          kind,
+          artwork: { logo: e.logo },
+          epgChannelId: e.tvgId,
+          number: idx + 1,
+          hasArchive: !!e.catchup,
+          archiveDays: e.catchup?.days,
+          extra: { ...base.extra, catchup: e.catchup },
+        });
       } else if (kind === "movie") {
         items.push({
           ...base,
@@ -115,7 +125,7 @@ export class M3USource implements MediaSource<M3UConfig> {
     return this.items.filter((i) => i.title.toLowerCase().includes(q)).slice(0, 200);
   }
 
-  async resolvePlayback(item: MediaItem): Promise<PlaybackRequest> {
+  async resolvePlayback(item: MediaItem, opts?: { catchupStart?: number; catchupDurationMin?: number }): Promise<PlaybackRequest> {
     const e =
       this.entries.get(item.id) ??
       (typeof item.extra?.url === "string"
@@ -123,11 +133,16 @@ export class M3USource implements MediaSource<M3UConfig> {
         : undefined);
     if (!e) throw new Error("Stream no longer exists in this playlist. Try refreshing.");
     const headers = { ...(this.config.userAgent ? { "User-Agent": this.config.userAgent } : {}), ...e.headers };
-    const container = detectContainer(e.url);
+    const catchup = (this.entries.get(item.id)?.catchup ?? item.extra?.catchup) as M3UEntry["catchup"];
+    const archiveUrl =
+      opts?.catchupStart && catchup ? buildCatchupUrl(e.url, catchup, opts.catchupStart, opts.catchupDurationMin ?? 120) : null;
+    if (opts?.catchupStart && !archiveUrl) throw new Error("This channel doesn't provide catch-up.");
+    const url = archiveUrl ?? e.url;
+    const container = detectContainer(url);
     return {
-      url: e.url,
+      url,
       container,
-      isLive: item.kind === "live",
+      isLive: item.kind === "live" && !archiveUrl,
       headers: Object.keys(headers).length ? headers : undefined,
       title: item.title,
       subtitle: e.group,

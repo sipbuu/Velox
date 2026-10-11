@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Clapperboard, Heart, Layers, Search, Tv } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { CalendarDays, Clapperboard, Heart, Layers, Search, Tv } from "lucide-react";
 import type { MediaItem } from "@/types/media";
 import { useLibrary, useUnifiedLibrary } from "@/store/library";
 import { usePlayer } from "@/store/player";
@@ -59,6 +59,12 @@ export function BrowsePage({ kind }: { kind: "live" | "movie" | "series" }) {
         title={meta.title}
         subtitle={`${items.length.toLocaleString()} ${kind === "live" ? "channels" : "titles"}`}
         actions={
+          <>
+          {kind === "live" && (
+            <Link to="/guide" className="btn-glass">
+              <CalendarDays size={16} /> <span className="hidden sm:inline">Guide</span>
+            </Link>
+          )}
           <button
             aria-label="Favorites only"
             className={cn("btn-glass", favOnly && "!bg-live/15 text-live")}
@@ -66,6 +72,7 @@ export function BrowsePage({ kind }: { kind: "live" | "movie" | "series" }) {
           >
             <Heart size={16} fill={favOnly ? "currentColor" : "none"} />
           </button>
+          </>
         }
       />
       <div className="sticky top-[env(safe-area-inset-top)] z-30 -mx-4 mb-5 space-y-3 px-4 py-2 md:-mx-8 md:px-8">
