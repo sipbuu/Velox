@@ -161,11 +161,17 @@ export function HomePage() {
 
       {favItems.length > 0 && (
         <Shelf title="Favorites">
-          {favItems.slice(0, 20).map((item) => (
-            <div key={item.uid} className="w-32 shrink-0 md:w-40">
-              <PosterCard item={item} onSelect={open} />
-            </div>
-          ))}
+          {favItems.slice(0, 20).map((item) =>
+            item.kind === "live" ? (
+              <div key={item.uid} className="w-44 shrink-0 self-start">
+                <ChannelTile item={item} onSelect={(c) => play(c, { channels: favItems.filter((f) => f.kind === "live") })} />
+              </div>
+            ) : (
+              <div key={item.uid} className="w-32 shrink-0 md:w-40">
+                <PosterCard item={item} onSelect={open} />
+              </div>
+            ),
+          )}
         </Shelf>
       )}
 

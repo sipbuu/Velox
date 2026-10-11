@@ -10,35 +10,48 @@ Velox isn't tied to one provider. You can mix any of these in a single library:
 | **M3U / M3U8** | Playlist URL or imported file, `group-title` categories, `tvg-logo`, `#EXTVLCOPT` headers, XMLTV EPG via `url-tvg` |
 | **Direct URLs** | Bookmarked HLS / MPEG-TS / MP4 / MKV streams |
 | **Local files** | Folders on the device, sidecar subtitles (`movie.en.srt`, `movie.vtt`) picked up automatically |
+| **Jellyfin / Emby** | Movies, shows and Live TV with EPG, server-side transcoding, external subtitles, cast photos, resume sync |
+| **Plex** | Sign in with Plex (PIN flow) or URL + token, movies and shows, direct play or HLS transcode, subtitles, trailers, progress sync |
 
-New backends (Plex, Jellyfin, custom scrapers) are plugins: implement `MediaSource` and call `registerSourceFactory()`.
+More backends are plugins: implement `MediaSource` and call `registerSourceFactory()`.
 
 ## Screenshots
 
-> Captured from the web build against a mock Xtream server (artwork and channels are generated placeholders).
+> Captured from the web build against a mock Xtream server. Posters, logos, ratings and reviews are generated placeholders.
 
-| Home (dark) | Live TV | Player with captions |
+| Home | Live TV | TV Guide |
 | --- | --- | --- |
-| ![Home](docs/screenshots/desktop-dark-home.jpg) | ![Live TV](docs/screenshots/desktop-dark-live.jpg) | ![Player](docs/screenshots/desktop-dark-player.jpg) |
+| ![Home](docs/screenshots/desktop-dark-home.jpg) | ![Live TV](docs/screenshots/desktop-dark-live.jpg) | ![TV Guide](docs/screenshots/desktop-dark-guide.jpg) |
 
-| Movies | Series detail | Settings |
+| Title page (ratings, cast, reviews) | Series | Player with captions |
 | --- | --- | --- |
-| ![Movies](docs/screenshots/desktop-dark-movies.jpg) | ![Series](docs/screenshots/desktop-dark-series-detail.jpg) | ![Settings](docs/screenshots/desktop-dark-settings.jpg) |
+| ![Title](docs/screenshots/desktop-dark-title.jpg) | ![Series](docs/screenshots/desktop-dark-series-detail.jpg) | ![Player](docs/screenshots/desktop-dark-player.jpg) |
 
-| Home (light) | Movies (light) | Search |
+| Mini player | Favorites | Settings |
 | --- | --- | --- |
-| ![Home light](docs/screenshots/desktop-light-home.jpg) | ![Movies light](docs/screenshots/desktop-light-movies.jpg) | ![Search](docs/screenshots/desktop-light-search.jpg) |
+| ![Mini player](docs/screenshots/desktop-dark-mini.jpg) | ![Favorites](docs/screenshots/desktop-dark-favorites.jpg) | ![Settings](docs/screenshots/desktop-dark-settings.jpg) |
+
+| Home (light) | Movies (light) | Title (light) |
+| --- | --- | --- |
+| ![Home light](docs/screenshots/desktop-light-home.jpg) | ![Movies light](docs/screenshots/desktop-light-movies.jpg) | ![Title light](docs/screenshots/desktop-light-title.jpg) |
 
 **iPhone 16 Pro Max layout**
 
-| | | | | |
-| --- | --- | --- | --- | --- |
-| ![](docs/screenshots/iphone-dark-home.jpg) | ![](docs/screenshots/iphone-dark-live.jpg) | ![](docs/screenshots/iphone-light-movies.jpg) | ![](docs/screenshots/iphone-light-series-detail.jpg) | ![](docs/screenshots/iphone-dark-player.jpg) |
+| | | | | | |
+| --- | --- | --- | --- | --- | --- |
+| ![](docs/screenshots/iphone-dark-home.jpg) | ![](docs/screenshots/iphone-dark-guide.jpg) | ![](docs/screenshots/iphone-light-title.jpg) | ![](docs/screenshots/iphone-light-series-detail.jpg) | ![](docs/screenshots/iphone-light-favorites.jpg) | ![](docs/screenshots/iphone-dark-player.jpg) |
 
 ## Features
 
 - **Liquid Glass UI**: frosted translucent surfaces, inner highlights, hairline borders, bento layouts, spring hover/tap animations. Light, dark and system themes, accent colours and a reduce-transparency option.
 - **Native window materials**: on **macOS 26+** the window is backed by Apple's real Liquid Glass (`NSGlassEffectView`, via `window-vibrancy`). Older macOS versions get `NSVisualEffectView` vibrancy, and Windows 11 gets Mica. When a native material is active, the web UI turns translucent so the system glass shows through. On macOS the title bar is a transparent overlay.
+- **Native iOS tab bar**: on iPhone, a real `UITabBar` (local Swift plugin `tauri-plugin-native-glass`) replaces the CSS tab bar. It is Liquid Glass on iOS 26 and drives the app's navigation.
+- **Favorites**: heart any channel, movie or show. Favorites have their own page and Home shelf, and survive sources going offline.
+- **Hide & parental controls**: long-press or right-click to hide a channel, title or whole category. Adult categories are hidden by default, and an optional parental PIN guards un-hiding.
+- **TV guide**: timeline grid (3 h back, 12 h ahead) with a now line, category filter, programme details, **catch-up** for Xtream and M3U (`catchup`/`catchup-source` templates: default, append, shift, flussonic) and **Remind me** notifications.
+- **Title pages**: backdrop hero with an auto-playing muted trailer, ratings from **IMDb, Rotten Tomatoes and Metacritic** (via an OMDb key) plus **TMDB** and the provider, cast with photos, TMDB reviews, awards, and More like this. Provider metadata works without keys; TMDB and OMDb keys are optional and free.
+- **Player**: resume where you left off, an in-app mini player that keeps playing while you browse, channel zapping with an in-player channel list, Start over for live programmes, playback speed, sleep timer, and an up-next countdown for episodes.
+- **Extras**: Recent channels and Continue watching shelves, a keyboard shortcuts overlay (`?`), and JSON backup / restore of favorites, hidden items, reminders, settings and sources.
 - **Artwork fallbacks**: logos and posters from Xtream/M3U metadata. Broken, 404 or 1×1 images get replaced by a generated gradient SVG with the channel's initials.
 - **Playback**: hls.js, mpegts.js, or native HTML5/AVPlayer (hardware-accelerated) is picked per platform. On iOS and Safari, HLS goes through the native pipeline so AirPlay and PiP work.
 - **Live time-shift**
@@ -70,14 +83,15 @@ New backends (Plex, Jellyfin, custom scrapers) are plugins: implement `MediaSour
 │   │   ├── xtream.ts         # Xtream Codes player_api client
 │   │   ├── m3u.ts, m3uParser.ts
 │   │   ├── local.ts          # native folder scan / browser folder picker
+│   │   ├── jellyfin.ts, plex.ts
 │   │   └── direct.ts
-│   ├── store/                # Zustand: settings, sources, library (unified view), player, downloads
+│   ├── store/                # Zustand: settings, sources, library (unified view + filters), player, downloads, filters, reminders
 │   ├── components/
 │   │   ├── player/           # VeloxPlayer, engine selection (hls.js / mpegts.js / native), TrackMenu (subs + audio)
 │   │   ├── media/            # Artwork (fallbacks), PosterCard, ChannelTile, VirtualGrid
 │   │   ├── layout/           # AppShell (sidebar / iOS tab bar), PlayerHost
 │   │   └── ui/
-│   ├── pages/                # Home (bento), Browse (live/movies/series), SeriesDetail, Search, Downloads, Sources, Settings
+│   ├── pages/                # Home, Browse, Guide, Title, SeriesDetail, Favorites, Search, Downloads, Sources, Settings
 │   ├── hooks/                # theme sync, stream resolution (relay / time-shift), EPG
 │   ├── lib/                  # IPC, HTTP, credentials, kv storage, subtitles, fallback art, media server client
 │   └── styles/index.css      # theme tokens (light/dark) + glass components
@@ -86,6 +100,7 @@ New backends (Plex, Jellyfin, custom scrapers) are plugins: implement `MediaSour
 │   ├── tauri.conf.json
 │   ├── capabilities/default.json
 │   ├── Info.plist, Info.ios.plist   # ATS / local networking / background audio / Files app sharing
+│   ├── plugins/native-glass/ # local Tauri plugin: Swift UITabBar (Liquid Glass on iOS 26)
 │   └── src/
 │       ├── lib.rs            # app setup, state, command registration, purge on exit
 │       ├── server.rs         # axum localhost relay: /proxy, /ts/{id}/index.m3u8, /ts/{id}/{seg}
@@ -140,5 +155,7 @@ For the web deploy, set **Settings → Pages → Source** to *GitHub Actions*.
 - **Encrypted HLS** (AES-128/SAMPLE-AES) works with native time-shift but not with the Software Buffer Cache.
 - **iCloud Keychain sync**: credentials go to the device keychain. Syncing them across devices needs the `kSecAttrSynchronizable` attribute. That attribute isn't set by `keyring`, so it's planned as a small Swift plugin.
 - **iOS background downloads** continue while the app is in the foreground or briefly backgrounded. Fully suspended transfers need a `URLSession` background-configuration plugin, which is also planned.
-- **Native Liquid Glass inside the UI**: the in-app panels, cards and tab bar are CSS (`backdrop-filter`) recreations, because a WebView can't host native `NSGlassEffectView`/`UIGlassEffect` per element. Native glass covers the window background on macOS. On iOS, the system video player (fullscreen / AirPlay / PiP) uses Apple's native controls. A native iOS backdrop via a Swift plugin is a possible next step.
+- **Native Liquid Glass inside the UI**: in-app panels and cards are CSS (`backdrop-filter`) recreations, because a WebView can't host native glass per element. Native glass covers the window background on macOS and the tab bar on iOS. iOS apps don't show the wallpaper behind them, so a native glass background wouldn't add anything there.
+- **YouTube trailers in the native apps**: some WebView setups refuse YouTube embeds (no referrer), so the trailer modal also has an **Open in YouTube** button.
+- **IMDb data**: IMDb has no public API. IMDb ratings come from OMDb (free key), and reviews come from TMDB.
 - **Web build**: Xtream and M3U servers often don't send CORS headers. Configure a CORS proxy in Settings, or use the native apps.

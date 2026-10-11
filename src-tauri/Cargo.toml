@@ -1,6 +1,6 @@
 [package]
 name = "velox"
-version = "1.6.0"
+version = "1.6.1"
 description = "Velox: a universal multi-source media player and streaming client"
 authors = ["Velox contributors"]
 repository = "https://github.com/sipbuu/Velox"
