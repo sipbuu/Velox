@@ -1,7 +1,7 @@
 {
   "name": "velox",
   "private": true,
-  "version": "1.6.1",
+  "version": "1.6.2",
   "description": "Velox: a universal multi-source media player and streaming client.",
   "type": "module",
   "scripts": {

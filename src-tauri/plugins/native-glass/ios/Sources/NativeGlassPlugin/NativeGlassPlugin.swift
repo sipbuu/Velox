@@ -47,7 +47,9 @@ class NativeGlassPlugin: Plugin, UITabBarDelegate {
             appearance.configureWithDefaultBackground()
             appearance.backgroundEffect = UIBlurEffect(style: .systemChromeMaterial)
             bar.standardAppearance = appearance
-            bar.scrollEdgeAppearance = appearance
+            if #available(iOS 15.0, *) {
+                bar.scrollEdgeAppearance = appearance
+            }
         }
         host.addSubview(bar)
         NSLayoutConstraint.activate([
