@@ -8,8 +8,20 @@ interface SheetTarget {
   y: number;
 }
 
+export interface AppToast {
+  id: number;
+  title: string;
+  body?: string;
+  action?: { label: string; run: () => void };
+}
+
 interface UiState {
   sheet: SheetTarget | null;
+  toasts: AppToast[];
+  shortcutsOpen: boolean;
+  pushToast: (t: Omit<AppToast, "id">, ms?: number) => void;
+  dismissToast: (id: number) => void;
+  setShortcutsOpen: (v: boolean) => void;
   pinRequest: { reason: string; resolve: (ok: boolean) => void } | null;
   openSheet: (t: SheetTarget) => void;
   closeSheet: () => void;
@@ -17,8 +29,19 @@ interface UiState {
   settlePin: (ok: boolean) => void;
 }
 
+let toastSeq = 0;
+
 export const useUi = create<UiState>((set, get) => ({
   sheet: null,
+  toasts: [],
+  shortcutsOpen: false,
+  pushToast: (t, ms = 8000) => {
+    const id = ++toastSeq;
+    set((s) => ({ toasts: [...s.toasts.slice(-2), { ...t, id }] }));
+    window.setTimeout(() => get().dismissToast(id), ms);
+  },
+  dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+  setShortcutsOpen: (shortcutsOpen) => set({ shortcutsOpen }),
   pinRequest: null,
   openSheet: (sheet) => set({ sheet }),
   closeSheet: () => set({ sheet: null }),

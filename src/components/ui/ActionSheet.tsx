@@ -60,7 +60,7 @@ export function ActionSheet() {
         role="menu"
         className={cn(
           "glass-strong absolute overflow-hidden p-1.5 animate-fade-up",
-          desktop ? "w-60 rounded-glass" : "inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] rounded-glass-xl p-2",
+          desktop ? "w-60 rounded-glass !bg-surface/90" : "inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] rounded-glass-xl p-2",
         )}
         style={desktop ? { left, top } : undefined}
       >

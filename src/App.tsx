@@ -15,6 +15,16 @@ import { GuidePage } from "@/pages/GuidePage";
 import { TitlePage } from "@/pages/TitlePage";
 import { ActionSheet } from "@/components/ui/ActionSheet";
 import { PinPrompt } from "@/components/ui/PinPrompt";
+import { Toaster } from "@/components/ui/Toaster";
+import { ShortcutsOverlay } from "@/components/ui/ShortcutsOverlay";
+import { useReminderScheduler } from "@/hooks/useReminderScheduler";
+import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
+
+function AppEffects() {
+  useReminderScheduler();
+  useGlobalShortcuts();
+  return null;
+}
 import { useThemeSync } from "@/hooks/useTheme";
 import { useNativeChrome } from "@/hooks/useNativeChrome";
 import { useDownloads } from "@/store/downloads";
@@ -58,6 +68,9 @@ export default function App() {
       <PlayerHost />
       <ActionSheet />
       <PinPrompt />
+      <Toaster />
+      <ShortcutsOverlay />
+      <AppEffects />
     </HashRouter>
   );
 }

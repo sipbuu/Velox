@@ -1,6 +1,7 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { CalendarDays, History, Play, X } from "lucide-react";
+import { Bell, BellRing, CalendarDays, History, Play, X } from "lucide-react";
+import { reminderId, useReminders } from "@/store/reminders";
 import type { EpgProgramme, LiveChannel } from "@/types/media";
 import { useUnifiedLibrary } from "@/store/library";
 import { usePlayer } from "@/store/player";
@@ -167,6 +168,7 @@ interface RowProps {
 
 const GuideRow = memo(function GuideRow({ channel, top, labelW, totalW, now, windowStart, windowEnd, xOf, onPlay, onSelect }: RowProps) {
   const { list } = useEpg(channel);
+  const reminders = useReminders((s) => s.reminders);
   const visible = list.filter((p) => p.end > windowStart && p.start < windowEnd);
   return (
     <div className="absolute left-0 flex border-b border-ink/5" style={{ top, height: ROW_H, width: labelW + totalW }}>
@@ -202,6 +204,7 @@ const GuideRow = memo(function GuideRow({ channel, top, labelW, totalW, now, win
             >
               <span className="flex items-center gap-1 truncate text-[13px] font-semibold">
                 {archive && <History size={12} className="shrink-0 text-accent" />}
+                {reminders.some((r) => r.id === reminderId(channel.uid, p.start)) && <BellRing size={12} className="shrink-0 text-warning" />}
                 <span className="truncate">{p.title}</span>
               </span>
               <span className="block truncate text-[11px] tabular-nums text-ink-faint">
@@ -226,6 +229,9 @@ function ProgrammeSheet({ selection, now, onClose, onWatchLive, onCatchup }: { s
   const past = p.end <= now;
   const withinArchive = !channel.archiveDays || now - p.start < channel.archiveDays * 86400_000;
   const canCatchup = (p.hasArchive ?? channel.hasArchive) && (past || live) && withinArchive;
+  const { reminders, add, remove } = useReminders();
+  const reminded = reminders.some((r) => r.id === reminderId(channel.uid, p.start));
+  const future = p.start > now;
   return (
     <div className="fixed inset-0 z-[60] grid items-end bg-black/30 backdrop-blur-sm md:place-items-center" onClick={onClose}>
       <div className="glass-strong m-3 w-full max-w-lg rounded-glass-xl p-5 animate-fade-up md:m-0" onClick={(e) => e.stopPropagation()}>
@@ -255,9 +261,15 @@ function ProgrammeSheet({ selection, now, onClose, onWatchLive, onCatchup }: { s
               <History size={16} /> {live ? "Watch from start" : "Play catch-up"}
             </button>
           )}
-          {!live && !canCatchup && (
-            <p className="text-sm text-ink-faint">{past ? "Catch-up isn't available for this programme." : "Starts later. Check back then!"}</p>
+          {future && (
+            <button
+              className={reminded ? "btn-glass text-accent" : "btn-primary"}
+              onClick={() => (reminded ? remove(reminderId(channel.uid, p.start)) : add({ channel, title: p.title, start: p.start, end: p.end }))}
+            >
+              {reminded ? <BellRing size={16} /> : <Bell size={16} />} {reminded ? "Reminder set" : "Remind me"}
+            </button>
           )}
+          {past && !canCatchup && <p className="text-sm text-ink-faint">Catch-up isn't available for this programme.</p>}
           {!live && (
             <button className="btn-glass" onClick={onWatchLive}>
               Tune to channel

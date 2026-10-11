@@ -74,3 +74,18 @@ fn scan(folders: Vec<String>) -> Vec<LocalFileEntry> {
 pub async fn local_scan(folders: Vec<String>) -> Result<Vec<LocalFileEntry>> {
     tokio::task::spawn_blocking(move || scan(folders)).await.map_err(|e| Error::msg(e.to_string()))
 }
+
+#[tauri::command]
+pub async fn text_file_write(path: String, contents: String) -> Result<()> {
+    tokio::fs::write(&path, contents).await?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn text_file_read(path: String) -> Result<String> {
+    let bytes = tokio::fs::read(&path).await?;
+    if bytes.len() > 20 * 1024 * 1024 {
+        return Err(Error::msg("file is too large"));
+    }
+    Ok(String::from_utf8_lossy(&bytes).into_owned())
+}

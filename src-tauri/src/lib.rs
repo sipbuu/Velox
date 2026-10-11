@@ -40,6 +40,7 @@ pub fn run() {
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_native_glass::init())
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_store::Builder::default().build())
@@ -71,6 +72,8 @@ pub fn run() {
             commands::credentials::credentials_get,
             commands::credentials::credentials_delete,
             commands::local::local_scan,
+            commands::local::text_file_write,
+            commands::local::text_file_read,
             commands::epg::epg_fetch_xmltv,
             commands::media::media_server_info,
             commands::media::native_material,

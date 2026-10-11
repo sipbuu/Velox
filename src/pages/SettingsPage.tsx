@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Row, Section, Toggle } from "@/components/ui/SettingsRows";
 import { ContentSection } from "@/pages/settings/ContentSection";
 import { MetadataSection } from "@/pages/settings/MetadataSection";
+import { BackupSection } from "@/pages/settings/BackupSection";
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { isTauri } from "@/lib/platform";
@@ -137,6 +138,8 @@ export function SettingsPage() {
           </Row>
         </Section>
       )}
+
+      <BackupSection />
 
       <p className="mt-8 text-center text-xs text-ink-faint">Velox {__APP_VERSION__}</p>
     </div>

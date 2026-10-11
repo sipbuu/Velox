@@ -10,6 +10,7 @@ import { GlassPanel } from "@/components/ui/GlassPanel";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Artwork } from "@/components/media/Artwork";
 import { PosterCard } from "@/components/media/PosterCard";
+import { ChannelTile } from "@/components/media/ChannelTile";
 import type { MediaItem } from "@/types/media";
 
 export function HomePage() {
@@ -31,6 +32,11 @@ export function HomePage() {
     .filter((r) => !r.finished && r.position && r.duration && r.position > 20)
     .map((r) => ({ r, item: view.byUid.get(r.uid) ?? r.item }))
     .filter((x): x is { r: (typeof recents)[number]; item: MediaItem } => !!x.item && !hiddenUids.has(x.item.uid));
+  const recentChannels = recents
+    .filter((r) => r.item?.kind === "live" || view.byUid.get(r.uid)?.kind === "live")
+    .map((r) => view.byUid.get(r.uid) ?? r.item!)
+    .filter((i) => !hiddenUids.has(i.uid))
+    .slice(0, 12);
   const favItems = favorites.map((u) => view.byUid.get(u)).filter((x): x is MediaItem => !!x);
   const latestMovies = useMemo(
     () => view.items.filter((i) => i.kind === "movie").sort((a, b) => (b.addedAt ?? 0) - (a.addedAt ?? 0)).slice(0, 12),
@@ -138,6 +144,16 @@ export function HomePage() {
                   </div>
                 ) : null}
               </button>
+            </div>
+          ))}
+        </Shelf>
+      )}
+
+      {recentChannels.length > 0 && (
+        <Shelf title="Recent channels">
+          {recentChannels.map((ch) => (
+            <div key={ch.uid} className="w-44 shrink-0">
+              <ChannelTile item={ch} onSelect={(c) => play(c, { channels: recentChannels })} />
             </div>
           ))}
         </Shelf>
